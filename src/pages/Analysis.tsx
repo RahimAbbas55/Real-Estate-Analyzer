@@ -59,7 +59,7 @@ const Analysis = () => {
     },
   });
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
     // Calculate investment metrics
     const purchasePrice = parseFloat(data.purchasePrice);
     const monthlyRent = parseFloat(data.monthlyRent);
@@ -77,6 +77,27 @@ const Analysis = () => {
     const monthlyCashFlow = noi / 12;
     const cocRoi = (noi / downPaymentAmount) * 100;
     const capRate = (noi / purchasePrice) * 100;
+
+    // Send data to webhook
+    try {
+      await fetch("https://rahimdemo.app.n8n.cloud/webhook-test/property-analyzer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          calculatedMetrics: {
+            monthlyCashFlow: monthlyCashFlow.toFixed(0),
+            cocRoi: cocRoi.toFixed(1),
+            capRate: capRate.toFixed(1),
+            requiredInvestment: downPaymentAmount.toFixed(0),
+          }
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to send data to webhook:", error);
+    }
 
     // Store results in localStorage
     localStorage.setItem('analysisResults', JSON.stringify({
