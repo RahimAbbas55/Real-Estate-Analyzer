@@ -14,6 +14,7 @@ interface AnalysisResults {
     rationale: string;
   };
   notes?: string;
+  driveLink?: string;
 }
 
 const Results = () => {
@@ -25,18 +26,16 @@ const Results = () => {
     if (storedResults) {
       try {
         const parsed = JSON.parse(storedResults);
-        console.log('Loaded results:', parsed); // Debug log
+        console.log('Loaded results:', parsed);
         setResults(parsed);
       } catch (error) {
         console.error('Failed to parse results:', error);
       }
     } else {
       console.log('No results found in sessionStorage');
-      // Optionally redirect back if no results found
-      // navigate('/analysis');
     }
   }, [navigate]);
-
+  console.log('Current results state:', results);
   if (!results) {
     return (
       <div className="min-h-screen bg-background pb-20 flex items-center justify-center">
@@ -102,7 +101,6 @@ const Results = () => {
             </CardContent>
           </Card>
 
-          {/* AI Risk Assessment Card */}
           {results.ai_risk_assessment && (
             <Card className="overflow-hidden">
               <CardContent className="p-6">
@@ -130,7 +128,6 @@ const Results = () => {
             </Card>
           )}
 
-          {/* Notes Card */}
           {results.notes && (
             <Card className="overflow-hidden border-muted">
               <CardContent className="p-6">
@@ -140,6 +137,41 @@ const Results = () => {
                 <p className="text-sm text-muted-foreground">
                   {results.notes}
                 </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {results.driveLink && (
+            <Card className="overflow-hidden border-primary/20">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+                  Google Drive Folder
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Access your documents here
+                </p>
+                <a
+                  href={results.driveLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                  </svg>
+                  Open Report
+                </a>
               </CardContent>
             </Card>
           )}
