@@ -319,7 +319,7 @@ const Analysis: React.FC = () => {
 
     // ✅ Send everything in ONE request
     const response = await axios.post(
-      "https://rahimdemo.app.n8n.cloud/webhook-test/property-analyzer", 
+      "https://rahimdemo.app.n8n.cloud/webhook/property-analyzer", 
       formData, 
       {
         headers: { "Content-Type": "multipart/form-data" },
