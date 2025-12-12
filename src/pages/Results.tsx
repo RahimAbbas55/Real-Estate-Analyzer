@@ -1,185 +1,242 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import BottomNav from "@/components/BottomNav";
-import { useNavigate } from "react-router-dom";
+import Layout from "@/components/Layout";
+import { ChevronRight, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
-interface AnalysisResults {
-  monthly_cash_flow: number;
-  cash_on_cash_return: number;
-  cap_rate: number;
-  required_investment: number;
-  ai_risk_assessment?: {
-    score: number;
-    level: string;
-    rationale: string;
-  };
-  notes?: string;
-  driveLink?: string;
-}
+type PropertyAnalysis = Tables<"property_analysis">;
 
-const Results = () => {
-  const navigate = useNavigate();
-  const [results, setResults] = useState<AnalysisResults | null>(null);
+type AnalysisEntry = {
+  id: string;
+  createdAt: string;
+  content: PropertyAnalysis;
+};
+
+const Results: React.FC = () => {
+  const [list, setList] = useState<AnalysisEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<AnalysisEntry | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedResults = sessionStorage.getItem('analysisResults');
-    if (storedResults) {
+    const fetchAnalysisResults = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const parsed = JSON.parse(storedResults);
-        console.log('Loaded results:', parsed);
-        setResults(parsed);
-      } catch (error) {
-        console.error('Failed to parse results:', error);
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setError("Not authenticated");
+          setList([]);
+          return;
+        }
+
+        const { data, error: fetchError } = await supabase
+          .from("property_analysis")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (fetchError) {
+          console.error("Failed to fetch analysis results:", fetchError);
+          setError("Failed to load analysis results");
+          setList([]);
+          return;
+        }
+
+        const transformedList: AnalysisEntry[] = (data || []).map((item) => ({
+          id: item.id,
+          createdAt: item.created_at,
+          content: item,
+        }));
+
+        setList(transformedList);
+      } catch (err) {
+        console.error("Error fetching analysis results:", err);
+        setError("An error occurred while loading results");
+        setList([]);
+      } finally {
+        setLoading(false);
       }
-    } else {
-      console.log('No results found in sessionStorage');
+    };
+
+    fetchAnalysisResults();
+  }, []);
+
+  const camelToSnake = (s: string) => s.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase());
+
+  const extract = (entry: AnalysisEntry, keys: (keyof PropertyAnalysis)[]): unknown => {
+    for (const key of keys) {
+      const val = entry.content[key];
+      if (val !== null && val !== undefined) {
+        return val;
+      }
     }
-  }, [navigate]);
-  console.log('Current results state:', results);
-  if (!results) {
+    return undefined;
+  };
+
+  const formatNumber = (v: unknown) => {
+    const n = Number(v || 0);
+    if (Number.isNaN(n)) return "-";
+    return n.toLocaleString();
+  };
+
+  const formatPercent = (v: unknown) => {
+    const n = Number(v || 0);
+    if (Number.isNaN(n)) return "-";
+    return `${n.toFixed(1)}%`;
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-20 flex items-center justify-center">
-        <p className="text-muted-foreground">Loading results...</p>
-      </div>
+      <Layout>
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <p className="text-muted-foreground">Loading analysis history...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <p className="text-destructive">{error}</p>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Investment Analysis</h1>
-          <p className="text-muted-foreground">Complete property analysis results</p>
+    <Layout>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Your Analyses</h1>
+            <p className="text-muted-foreground">Recent property analyses — click any item for details</p>
+          </div>
         </div>
 
-        <div className="space-y-4">
-          <Card className="overflow-hidden">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                Monthly Cash Flow
-              </h3>
-              <p className="text-4xl font-bold text-success mb-1">
-                ${results.monthly_cash_flow?.toLocaleString() || '0'}
-              </p>
-              <p className="text-sm text-muted-foreground">After all expenses</p>
-            </CardContent>
-          </Card>
+        {list.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground">No analyses yet. Run an analysis to see results here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {list.map((entry) => {
+              const monthly = extract(entry, ["monthly_cash_flow"]) ?? 0;
+              const cap = extract(entry, ["cap_rate"]) ?? 0;
+              const coc = extract(entry, ["cash_on_cash_return"]) ?? 0;
+              const required = extract(entry, ["required_investment"]) ?? 0;
+              const address = entry.content.property_address;
 
-          <Card className="overflow-hidden">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                Cash-on-Cash ROI
-              </h3>
-              <p className="text-4xl font-bold text-foreground mb-1">
-                {results.cash_on_cash_return?.toFixed(1) || '0'}%
-              </p>
-              <p className="text-sm text-muted-foreground">Annual return</p>
-            </CardContent>
-          </Card>
+              return (
+                <Card key={entry.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelected(entry)}>
+                  <CardContent className="p-4 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-sm text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</div>
+                      {address && <div className="text-sm font-medium text-foreground truncate">{address}</div>}
+                      <div className="text-lg font-semibold text-foreground">${formatNumber(monthly)}</div>
+                      <div className="text-sm text-muted-foreground">Monthly Cash Flow</div>
+                    </div>
 
-          <Card className="overflow-hidden">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                Cap Rate
-              </h3>
-              <p className="text-4xl font-bold text-foreground mb-1">
-                {results.cap_rate?.toFixed(1) || '0'}%
-              </p>
-              <p className="text-sm text-muted-foreground">Market performance</p>
-            </CardContent>
-          </Card>
+                    <div className="text-right">
+                      <div className="text-sm text-muted-foreground">Cap Rate</div>
+                      <div className="font-semibold">{formatPercent(cap)}</div>
+                      <div className="text-sm text-muted-foreground mt-2">CoC: {formatPercent(coc)}</div>
+                      <div className="text-sm text-muted-foreground">Req: ${formatNumber(required)}</div>
+                    </div>
 
-          <Card className="overflow-hidden border-destructive/20">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                Required Investment
-              </h3>
-              <p className="text-4xl font-bold text-foreground mb-1">
-                ${results.required_investment?.toLocaleString() || '0'}
-              </p>
-              <p className="text-sm text-muted-foreground">Total upfront cost</p>
-            </CardContent>
-          </Card>
+                    <div className="pl-4">
+                      <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
-          {results.ai_risk_assessment && (
-            <Card className="overflow-hidden">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                  AI Risk Assessment
-                </h3>
-                <div className="flex items-center gap-3 mb-3">
-                  <p className="text-3xl font-bold text-foreground">
-                    {results.ai_risk_assessment.score}/100
-                  </p>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    results.ai_risk_assessment.level === 'Low Risk' 
-                      ? 'bg-green-100 text-green-700' 
-                      : results.ai_risk_assessment.level === 'Medium Risk'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-red-100 text-red-700'
-                  }`}>
-                    {results.ai_risk_assessment.level}
-                  </span>
+        {selected && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setSelected(null)} />
+            <div className="relative w-full max-w-3xl mx-4">
+              <div className="bg-card rounded-lg p-6 shadow-xl border border-border overflow-auto max-h-[80vh]">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold">Detailed Analysis</h2>
+                    <div className="text-sm text-muted-foreground">{new Date(selected.createdAt).toLocaleString()}</div>
+                  </div>
+                  <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-6 w-6" />
+                  </button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {results.ai_risk_assessment.rationale}
-                </p>
-              </CardContent>
-            </Card>
-          )}
 
-          {results.notes && (
-            <Card className="overflow-hidden border-muted">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                  Analysis Notes
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {results.notes}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-muted/5 p-4 rounded">
+                    <h3 className="font-semibold mb-2">Summary</h3>
+                    {selected.content.property_address && <div className="mb-3 pb-3 border-b"><p className="font-medium text-foreground">{selected.content.property_address}</p></div>}
+                    <dl className="text-sm space-y-2">
+                      <div className="flex justify-between"><dt>Status</dt><dd>{String(selected.content.status ?? "saved")}</dd></div>
+                      <div className="flex justify-between"><dt>Mortgage Payment</dt><dd>${formatNumber(selected.content.mortgage_payment)}</dd></div>
+                      <div className="flex justify-between"><dt>Net Operating Income</dt><dd>${formatNumber(selected.content.net_operating_income)}</dd></div>
+                      <div className="flex justify-between"><dt>Monthly Cash Flow</dt><dd>${formatNumber(selected.content.monthly_cash_flow)}</dd></div>
+                      <div className="flex justify-between"><dt>Cap Rate</dt><dd>{formatPercent(selected.content.cap_rate)}</dd></div>
+                      <div className="flex justify-between"><dt>Cash on Cash</dt><dd>{formatPercent(selected.content.cash_on_cash_return)}</dd></div>
+                      <div className="flex justify-between"><dt>Required Investment</dt><dd>${formatNumber(selected.content.required_investment)}</dd></div>
+                    </dl>
+                  </div>
 
-          {results.driveLink && (
-            <Card className="overflow-hidden border-primary/20">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                  Google Drive Folder
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Access your documents here
-                </p>
-                <a
-                  href={results.driveLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                  </svg>
-                  Open Report
-                </a>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+                  <div className="bg-muted/5 p-4 rounded">
+                    <h3 className="font-semibold mb-2">AI Risk Assessment</h3>
+                    {selected.content.ai_risk_assessment ? (
+                      <>
+                        <p className="text-sm"><strong>Score:</strong> {String((selected.content.ai_risk_assessment as Record<string, unknown>)?.score ?? "-")}</p>
+                        <p className="text-sm"><strong>Level:</strong> {String((selected.content.ai_risk_assessment as Record<string, unknown>)?.level ?? "-")}</p>
+                        <p className="text-sm mt-2"><strong>Rationale:</strong> {String((selected.content.ai_risk_assessment as Record<string, unknown>)?.rationale ?? "-")}</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">-</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4 bg-muted/5 p-4 rounded">
+                  <h3 className="font-semibold mb-2">Financial Breakdown</h3>
+                  {selected.content.financial_breakdown ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div className="flex justify-between"><span>Monthly Income</span><span>${formatNumber((selected.content.financial_breakdown as Record<string, unknown>)?.monthly_income ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>Monthly Expenses</span><span>${formatNumber((selected.content.financial_breakdown as Record<string, unknown>)?.monthly_expenses ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>NOI</span><span>${formatNumber((selected.content.financial_breakdown as Record<string, unknown>)?.net_operating_income ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>Debt Service</span><span>${formatNumber((selected.content.financial_breakdown as Record<string, unknown>)?.debt_service ?? 0)}</span></div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">-</p>
+                  )}
+                </div>
+
+                <div className="mt-4 flex flex-col gap-3">
+                  <div>
+                    <h3 className="font-semibold">Drive Link</h3>
+                    <p className="text-sm text-muted-foreground">{selected.content.drive_link ? <a href={selected.content.drive_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{selected.content.drive_link}</a> : '-'}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold">Notes</h3>
+                    <p className="text-sm text-muted-foreground">{selected.content.notes ?? '-'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-8" />
       </div>
-
       <BottomNav />
-    </div>
+    </Layout>
   );
 };
 

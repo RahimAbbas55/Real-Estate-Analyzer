@@ -3,16 +3,17 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import FeatureCard from "@/components/FeatureCard";
 import BottomNav from "@/components/BottomNav";
+import Layout from "@/components/Layout";
 
 const Welcome = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <Layout>
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-3">
-            Real Estate Property Analyzer
+          <h1 className="text-4xl font-bold text-foreground mb-3 leading-tight">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">Real Estate Property Analyzer</span>
           </h1>
           <p className="text-xl text-muted-foreground">
             Get instant investment analysis in minutes
@@ -76,7 +77,7 @@ const Welcome = () => {
       </div>
 
       <BottomNav />
-    </div>
+    </Layout>
   );
 };
 
