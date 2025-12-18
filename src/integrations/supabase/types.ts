@@ -26,6 +26,11 @@ export type Database = {
           cap_rate: number | null
           cash_on_cash_return: number | null
           required_investment: number | null
+          repair_estimate: Json | null
+          annual_cash_flow: number | null
+          dscr: number | null
+          maximum_allowable_offer: Json | null
+          final_verdict: string | null
           ai_risk_assessment: Json | null
           financial_breakdown: Json | null
           drive_link: string | null
@@ -44,6 +49,11 @@ export type Database = {
           cap_rate?: number | null
           cash_on_cash_return?: number | null
           required_investment?: number | null
+          repair_estimate?: Json | null
+          annual_cash_flow?: number | null
+          dscr?: number | null
+          maximum_allowable_offer?: Json | null
+          final_verdict?: string | null
           ai_risk_assessment?: Json | null
           financial_breakdown?: Json | null
           drive_link?: string | null
@@ -62,6 +72,11 @@ export type Database = {
           cap_rate?: number | null
           cash_on_cash_return?: number | null
           required_investment?: number | null
+          repair_estimate?: Json | null
+          annual_cash_flow?: number | null
+          dscr?: number | null
+          maximum_allowable_offer?: Json | null
+          final_verdict?: string | null
           ai_risk_assessment?: Json | null
           financial_breakdown?: Json | null
           drive_link?: string | null
