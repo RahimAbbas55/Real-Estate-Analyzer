@@ -16,6 +16,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isSignup, setIsSignup] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +52,25 @@ const Login = () => {
     } else {
       toast.success("Password reset email sent! Check your inbox.");
       setShowForgotPassword(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Signup successful! Please check your email to confirm your account.");
+      setIsSignup(false);
     }
   };
 
@@ -105,13 +125,13 @@ const Login = () => {
         <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <div className="mx-auto w-14 h-14 rounded-xl bg-gradient-to-tr from-primary/20 to-primary/5 flex items-center justify-center text-primary font-extrabold text-lg">HF</div>
-          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+          <CardTitle className="text-2xl font-bold">{isSignup ? "Create Account" : "Welcome Back"}</CardTitle>
           <CardDescription className="text-center">
-            Sign in to access your property analyzer
+            {isSignup ? "Sign up to start analyzing properties" : "Sign in to access your property analyzer"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={isSignup ? handleSignup : handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -154,8 +174,19 @@ const Login = () => {
             </Button>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? (isSignup ? "Signing up..." : "Signing in...") : (isSignup ? "Sign Up" : "Sign In")}
             </Button>
+
+            <div className="text-center">
+              <Button
+                type="button"
+                variant="link"
+                className="px-0 text-sm"
+                onClick={() => setIsSignup(!isSignup)}
+              >
+                {isSignup ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
+              </Button>
+            </div>
           </form>
         </CardContent>
         </Card>

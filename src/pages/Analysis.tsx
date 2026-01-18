@@ -12,8 +12,9 @@ import { Slider } from "@/components/ui/slider";
 import BottomNav from "@/components/BottomNav";
 import Layout from "@/components/Layout";
 import { toast } from "sonner";
-import { X, File, Image, Check, ChevronDown } from "lucide-react";
+import { X, File, Image, Check, ChevronDown, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { canSubmitAnalysis } from "@/integrations/supabase/subscription";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { sub } from "date-fns";
 
 const formSchema = z.object({
   streetAddress: z.string().nonempty("Street address is required"),
@@ -146,6 +148,7 @@ const Analysis: React.FC = () => {
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const reportInputRef = useRef<HTMLInputElement | null>(null);
 
+
   const {
     register,
     handleSubmit,
@@ -182,7 +185,17 @@ const Analysis: React.FC = () => {
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    
+    // Filter for valid image types
+    const imageFiles = files.filter((f) => {
+      if (!validImageTypes.includes(f.type)) {
+        toast.error(`${f.name} is not a supported image format (JPEG, PNG, WebP only)`);
+        return false;
+      }
+      return true;
+    });
+    
     if (propertyPhotos.length + imageFiles.length > 35) {
       toast.error("Maximum 35 photos allowed");
       return;
@@ -198,22 +211,24 @@ const Analysis: React.FC = () => {
       return true;
     });
 
-    // Compress images
+    // Compress images only if larger than 1MB
     const compressedFiles: File[] = [];
     let totalSize = 0;
     for (const file of filtered) {
       try {
-        const compressedFile = await imageCompression(file, {
-          maxSizeMB: 5,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-        });
-        compressedFiles.push(compressedFile);
-        totalSize += compressedFile.size;
+        let processedFile = file;
+        if (file.size > 1024 * 1024) { // 1MB
+          processedFile = await imageCompression(file, {
+            maxSizeMB: 5,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          });
+        }
+        compressedFiles.push(processedFile);
+        totalSize += processedFile.size;
       } catch (error) {
         console.error('Error compressing image:', error);
-        toast.error(`Failed to compress ${file.name}`);
-        // Still add the original if compression fails
+        // Add original file if compression fails
         compressedFiles.push(file);
         totalSize += file.size;
       }
@@ -263,72 +278,6 @@ const Analysis: React.FC = () => {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
 
-  const uploadInBatches = async (
-    files: File[],
-    fieldName: string,
-    batchSize = 10,
-    url = "https://rahimdemo.app.n8n.cloud/webhook/upload-data"
-  ) => {
-    const batches: File[][] = [];
-    for (let i = 0; i < files.length; i += batchSize)
-      batches.push(files.slice(i, i + batchSize));
-
-    for (let i = 0; i < batches.length; i++) {
-      const formData = new FormData();
-      batches[i].forEach((file) => formData.append(fieldName, file, file.name));
-
-      const maxAttempts = 3;
-      let attempt = 0;
-      while (attempt < maxAttempts) {
-        try {
-          await axios.post(url, formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-            timeout: 2 * 60 * 1000,
-          });
-          break;
-        } catch (err) {
-          attempt += 1;
-          if (attempt >= maxAttempts) throw err;
-        }
-      }
-    }
-  };
-
-  const [uploadSnapshot, setUploadSnapshot] = useState({
-    photos: 0,
-    reports: 0,
-  });
-
-  const handleUploadToDrive = async () => {
-    if (propertyPhotos.length === 0 && inspectionReports.length === 0) {
-      toast.error("Please add at least one file to upload");
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      if (propertyPhotos.length)
-        await uploadInBatches(propertyPhotos, "data", 8);
-      if (inspectionReports.length)
-        await uploadInBatches(inspectionReports, "reports", 5);
-
-      setUploadSnapshot({
-        photos: propertyPhotos.length,
-        reports: inspectionReports.length,
-      });
-
-      toast.success(
-        "Files uploaded to Drive successfully (uploaded in batches)"
-      );
-    } catch (error) {
-      console.error("Failed to upload files:", error);
-      toast.error("Failed to upload files to Drive");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const fieldsStep1: (keyof FormData)[] = [
     "streetAddress",
     "city",
@@ -357,6 +306,13 @@ const Analysis: React.FC = () => {
     if (propertyPhotos.length === 0) {
       toast.error("Please upload at least one property photo");
       setCurrentStep(3);
+      return;
+    }
+
+    // Check subscription and usage limits before proceeding
+    const subCheck = await canSubmitAnalysis();
+    if (!subCheck.allowed) {
+      toast.error(subCheck.message || "Unable to process analysis at this time");
       return;
     }
 
@@ -407,49 +363,66 @@ const Analysis: React.FC = () => {
         formData.append("reports", file, file.name);
       });
 
-      toast.loading(
-        `Processing ${propertyPhotos.length} images in batches. This may take 5-15 minutes...`, 
-        { 
-          duration: Infinity,
-          id: 'processing' 
+      // Show the modal immediately
+      setShowAnalysisPopup(true);
+
+      // Send the request asynchronously without blocking
+      (async () => {
+        try {
+          toast.loading(
+            `Processing ${propertyPhotos.length} images in batches. This may take 5-15 minutes...`, 
+            { 
+              duration: Infinity,
+              id: 'processing' 
+            }
+          );
+
+          const response = await axios.post(
+            // "https://rahimdemo.app.n8n.cloud/webhook-test/property-analyzer",    // Test url
+            "https://rahimdemo.app.n8n.cloud/webhook/property-analyzer",      // Production url
+            formData, 
+            {
+              headers: { "Content-Type": "multipart/form-data" },
+              timeout: 20 * 60 * 1000,
+            }
+          );
+
+          toast.dismiss('processing');
+          console.log(JSON.stringify(response.data));
+
+          toast.success("Analysis complete!");
+
+          navigate("/");
+
+        } catch (error: any) {
+          toast.dismiss('processing');
+          console.error("Failed to send data:", error);
+          
+          // Check if error is from database subscription limit
+          const errorMessage = error?.response?.data?.message || error?.message || "";
+          if (
+            error?.response?.status === 400 &&
+            errorMessage.includes("limit reached")
+          ) {
+            toast.error("Free plan limit reached: Please upgrade to Pro or Enterprise for unlimited analyses.");
+            setShowAnalysisPopup(false);
+          } else if (
+            error?.response?.status === 409 ||
+            errorMessage.includes("upgrade_required")
+          ) {
+            toast.error("Free plan limit reached: Please upgrade to Pro or Enterprise for unlimited analyses.");
+            setShowAnalysisPopup(false);
+          } else {
+            // For other errors, show generic message as per original requirement
+            // to not alarm users
+            console.log("Analysis request failed but continuing silently");
+          }
         }
-      );
-
-      const response = await axios.post(
-        // "https://rahimdemo.app.n8n.cloud/webhook-test/property-analyzer",    // Test url
-        "https://rahimdemo.app.n8n.cloud/webhook/property-analyzer",      // Production url
-        formData, 
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-          timeout: 20 * 60 * 1000,
-        }
-      );
-
-      toast.dismiss('processing');
-      console.log(JSON.stringify(response.data));
-      sessionStorage.setItem("analysisResults", JSON.stringify(response.data));
-
-      try {
-        const existing = JSON.parse(localStorage.getItem("analysisList") || "[]");
-        const entry = {
-          id: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          content: response.data,
-        };
-        existing.unshift(entry);
-        localStorage.setItem("analysisList", JSON.stringify(existing.slice(0, 50)));
-      } catch (err) {
-        console.warn("Failed to append analysis to localStorage", err);
-      }
-
-      toast.success("Analysis complete!");
-
-      setTimeout(() => navigate("/results"), 60000);
+      })();
 
     } catch (error) {
-      toast.dismiss('processing');
-      console.error("Failed to send data:", error);
-      toast.error("Failed to complete analysis");
+      console.error("Failed to prepare data:", error);
+      toast.error("Failed to prepare analysis data");
     }
   };
 

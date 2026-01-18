@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import BottomNav from "@/components/BottomNav";
 import Layout from "@/components/Layout";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight, X, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { getUserSubscription, getUsageInfo } from "@/integrations/supabase/subscription";
 
 type PropertyAnalysis = Tables<"property_analysis">;
 
@@ -19,6 +20,25 @@ const Results: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AnalysisEntry | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLimitReached, setIsLimitReached] = useState(false);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+
+  useEffect(() => {
+    const loadSubscriptionInfo = async () => {
+      try {
+        const subscription = await getUserSubscription();
+        const usage = await getUsageInfo();
+        if (subscription.plan === "free" && usage.currentCount >= 3) {
+          setIsLimitReached(true);
+        }
+      } catch (error) {
+        // silent fail
+      } finally {
+        setIsLoadingSubscription(false);
+      }
+    };
+    loadSubscriptionInfo();
+  }, []);
 
   useEffect(() => {
     const fetchAnalysisResults = async () => {
@@ -91,27 +111,68 @@ const Results: React.FC = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <Layout isAnalysisDisabled={isLimitReached}>
         <div className="max-w-3xl mx-auto px-4 py-8">
+          {isLimitReached && (
+            <div className="p-4 bg-destructive/10 border border-destructive/50 rounded-lg flex items-start gap-3 mb-8">
+              <Lock className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-destructive mb-1">
+                  Analysis Limit Reached
+                </p>
+                <p className="text-sm text-destructive/80">
+                  You've reached the maximum of 3 analyses per month on the Free plan. Please upgrade to Pro or Enterprise for unlimited analyses.
+                </p>
+              </div>
+            </div>
+          )}
           <p className="text-muted-foreground">Loading analysis history...</p>
         </div>
+        <BottomNav isAnalysisDisabled={isLimitReached} />
       </Layout>
     );
   }
 
   if (error) {
     return (
-      <Layout>
+      <Layout isAnalysisDisabled={isLimitReached}>
         <div className="max-w-3xl mx-auto px-4 py-8">
+          {isLimitReached && (
+            <div className="p-4 bg-destructive/10 border border-destructive/50 rounded-lg flex items-start gap-3 mb-8">
+              <Lock className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-destructive mb-1">
+                  Analysis Limit Reached
+                </p>
+                <p className="text-sm text-destructive/80">
+                  You've reached the maximum of 3 analyses per month on the Free plan. Please upgrade to Pro or Enterprise for unlimited analyses.
+                </p>
+              </div>
+            </div>
+          )}
           <p className="text-destructive">{error}</p>
         </div>
+        <BottomNav isAnalysisDisabled={isLimitReached} />
       </Layout>
     );
   }
 
   return (
-    <Layout>
+    <Layout isAnalysisDisabled={isLimitReached}>
       <div className="max-w-4xl mx-auto px-4 py-8">
+        {isLimitReached && (
+          <div className="p-4 bg-destructive/10 border border-destructive/50 rounded-lg flex items-start gap-3 mb-8">
+            <Lock className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-destructive mb-1">
+                Analysis Limit Reached
+              </p>
+              <p className="text-sm text-destructive/80">
+                You've reached the maximum of 3 analyses per month on the Free plan. Please upgrade to Pro or Enterprise for unlimited analyses.
+              </p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Your Analyses</h1>
@@ -274,7 +335,7 @@ const Results: React.FC = () => {
 
         <div className="mt-8" />
       </div>
-      <BottomNav />
+      <BottomNav isAnalysisDisabled={isLimitReached} />
     </Layout>
   );
 };

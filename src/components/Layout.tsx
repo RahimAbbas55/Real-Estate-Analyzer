@@ -1,11 +1,23 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calculator, FileText } from 'lucide-react';
+import { Home, Calculator, FileText, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-const Header = () => {
+const Header = ({ isAnalysisDisabled = false }: { isAnalysisDisabled?: boolean }) => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Error logging out');
+    } else {
+      toast.success('Logged out successfully');
+      navigate('/login');
+    }
+  };
 
   return (
     <header className="w-full border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-40">
@@ -13,19 +25,27 @@ const Header = () => {
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/') }>
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">HF</div>
           <div>
-            <div className="text-sm font-semibold text-foreground">House Finder Mate</div>
+            <div className="text-sm font-semibold text-foreground">Real Estate Analyzer</div>
             <div className="text-xs text-muted-foreground">Property analysis made simple</div>
           </div>
         </div>
 
         <nav className="hidden md:flex items-center gap-4">
           <Link to="/" className={`px-3 py-2 rounded-md ${location.pathname === '/' ? 'bg-primary/5 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>Home</Link>
-          <Link to="/analysis" className={`px-3 py-2 rounded-md ${location.pathname === '/analysis' ? 'bg-primary/5 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>Analysis</Link>
+          {isAnalysisDisabled ? (
+            <span className="px-3 py-2 rounded-md text-muted-foreground opacity-50 cursor-not-allowed" title="Analysis limit reached - upgrade to continue">Analysis</span>
+          ) : (
+            <Link to="/analysis" className={`px-3 py-2 rounded-md ${location.pathname === '/analysis' ? 'bg-primary/5 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>Analysis</Link>
+          )}
           <Link to="/results" className={`px-3 py-2 rounded-md ${location.pathname === '/results' ? 'bg-primary/5 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>Results</Link>
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button onClick={() => navigate('/analysis')} size="sm">New Analysis</Button>
+          <Button onClick={() => navigate('/analysis')} size="sm" disabled={isAnalysisDisabled}>New Analysis</Button>
+          <Button onClick={handleLogout} variant="outline" size="sm">
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
         </div>
       </div>
     </header>
@@ -38,10 +58,10 @@ const Footer = () => (
   </footer>
 );
 
-const Layout: React.FC<{ children: React.ReactNode } > = ({ children }) => {
+const Layout: React.FC<{ children: React.ReactNode, isAnalysisDisabled?: boolean }> = ({ children, isAnalysisDisabled }) => {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Header />
+      <Header isAnalysisDisabled={isAnalysisDisabled} />
 
       <main className="max-w-6xl mx-auto px-4 py-10">
         {children}

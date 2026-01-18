@@ -35,6 +35,7 @@ export type Database = {
           financial_breakdown: Json | null
           drive_link: string | null
           notes: string | null
+          plan_at_time: string
           created_at: string
           updated_at: string
         }
@@ -58,6 +59,7 @@ export type Database = {
           financial_breakdown?: Json | null
           drive_link?: string | null
           notes?: string | null
+          plan_at_time?: string
           created_at?: string
           updated_at?: string
         }
@@ -81,6 +83,74 @@ export type Database = {
           financial_breakdown?: Json | null
           drive_link?: string | null
           notes?: string | null
+          plan_at_time?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          plan: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          current_period_start: string | null
+          current_period_end: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          plan: string
+          status: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      analysis_usage: {
+        Row: {
+          id: string
+          user_id: string
+          analysis_count: number
+          period_start: string
+          period_end: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          analysis_count?: number
+          period_start: string
+          period_end: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          analysis_count?: number
+          period_start?: string
+          period_end?: string
           created_at?: string
           updated_at?: string
         }
