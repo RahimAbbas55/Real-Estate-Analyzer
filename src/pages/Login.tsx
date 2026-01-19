@@ -58,7 +58,7 @@ const Login = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,

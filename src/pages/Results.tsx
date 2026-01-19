@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import BottomNav from "@/components/BottomNav";
-import Layout from "@/components/Layout";
 import { ChevronRight, X, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { getUserSubscription, getUsageInfo } from "@/integrations/supabase/subscription";
+import BottomNav from "@/components/BottomNav";
+import Layout from "@/components/Layout";
 
 type PropertyAnalysis = Tables<"property_analysis">;
 
