@@ -34,7 +34,7 @@ const Welcome = () => {
     };
     loadSubscriptionInfo();
   }, []);
-  console.log(usageCount , isLimitReached , subscriptionPlan);
+  // console.log(usageCount , isLimitReached , subscriptionPlan);
   return (
     <Layout isAnalysisDisabled={isLimitReached}>
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -94,8 +94,8 @@ const Welcome = () => {
         </div>
 
         <Button
-          onClick={() => navigate("/analysis")}
-          className={`w-full h-14 text-lg font-semibold ${isLimitReached ? 'bg-blue-300 text-white' : ''}`}
+          onClick={() => navigate(isLimitReached ? "/pricing" : "/analysis")}
+          className={`w-full h-14 text-lg font-semibold ${isLimitReached ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}`}
           size="lg"
           disabled={isLoadingSubscription}
         >
