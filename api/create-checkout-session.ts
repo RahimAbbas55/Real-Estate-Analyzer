@@ -2,26 +2,54 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-12-18.acacia",
+// Check for required environment variables
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error("Missing STRIPE_SECRET_KEY environment variable");
+}
+if (!process.env.VITE_SUPABASE_URL) {
+  console.error("Missing VITE_SUPABASE_URL environment variable");
+}
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+  apiVersion: "2025-01-27.acacia",
 });
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.VITE_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Add CORS headers
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Check environment variables at runtime
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("Missing required environment variables");
+    return res.status(500).json({ error: "Server configuration error - missing environment variables" });
   }
 
   try {
     const { userId, userEmail, priceId } = req.body;
 
     if (!userId || !userEmail || !priceId) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({ error: "Missing required fields", received: { userId, userEmail, priceId } });
     }
+
+    console.log("Creating checkout session for:", { userId, userEmail, priceId });
 
     // Check if user already has a Stripe customer ID
     const { data: existingSubscription } = await supabase
