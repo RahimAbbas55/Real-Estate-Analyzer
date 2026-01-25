@@ -28,7 +28,7 @@ const Subscription: React.FC = () => {
   }, []);
 
   const handleUpgrade = async () => {
-    setLoading("pro");
+    setLoading("enterprise");
     try {
       await upgradeToPro();
     } catch (error: any) {
@@ -64,8 +64,8 @@ const Subscription: React.FC = () => {
       disabled: currentPlan === "free",
     },
     {
-      id: "pro",
-      name: "Pro",
+      id: "enterprise",
+      name: "Enterprise",
       price: "$39",
       period: "/month",
       description: "For serious real estate investors",
@@ -79,11 +79,14 @@ const Subscription: React.FC = () => {
         "Cash Flow & Cap Rate analysis",
         "AI-Assisted Deal Risk Insights",
       ],
-      buttonText: currentPlan === "pro" ? "Current Plan" : "Upgrade to Pro",
-      disabled: currentPlan === "pro",
+      buttonText: currentPlan === "enterprise" ? "Current Plan" : "Upgrade to Enterprise",
+      disabled: currentPlan === "enterprise",
       popular: true,
     },
   ];
+
+  // Check if user is on the enterprise plan
+  const isEnterprisePlan = currentPlan === "enterprise";
 
   // Loading state
   if (pageLoading) {
@@ -100,8 +103,8 @@ const Subscription: React.FC = () => {
     );
   }
 
-  // Pro user view - Manage Membership
-  if (currentPlan === "pro") {
+  // Enterprise user view - Manage Membership
+  if (isEnterprisePlan) {
     return (
       <Layout>
         <div className="max-w-2xl mx-auto px-4 py-12">
@@ -110,7 +113,7 @@ const Subscription: React.FC = () => {
               <Crown className="w-8 h-8 text-primary" />
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Pro Membership
+              Enterprise Membership
             </h1>
             <p className="text-muted-foreground">
               You're enjoying unlimited access to all features
@@ -123,7 +126,7 @@ const Subscription: React.FC = () => {
                 <div>
                   <CardTitle className="text-xl flex items-center gap-2">
                     <Building2 className="w-5 h-5 text-primary" />
-                    Pro Plan
+                    Enterprise Plan
                   </CardTitle>
                   <CardDescription className="mt-1">$39/month</CardDescription>
                 </div>
@@ -244,7 +247,7 @@ const Subscription: React.FC = () => {
                     variant={plan.popular ? "default" : "outline"}
                     disabled={plan.disabled || loading !== null}
                     onClick={() => {
-                      if (plan.id === "pro") handleUpgrade();
+                      if (plan.id === "enterprise") handleUpgrade();
                     }}
                   >
                     {loading === plan.id ? (
