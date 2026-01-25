@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calculator, FileText, LogOut } from 'lucide-react';
+import { Home, Calculator, FileText, LogOut, CreditCard } from 'lucide-react';
 import { Button } from './ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -38,6 +38,9 @@ const Header = ({ isAnalysisDisabled = false }: { isAnalysisDisabled?: boolean }
             <Link to="/analysis" className={`px-3 py-2 rounded-md ${location.pathname === '/analysis' ? 'bg-primary/5 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>Analysis</Link>
           )}
           <Link to="/results" className={`px-3 py-2 rounded-md ${location.pathname === '/results' ? 'bg-primary/5 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>Results</Link>
+          <Link to="/pricing" className={`px-3 py-2 rounded-md ${location.pathname === '/pricing' ? 'bg-primary/5 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>
+            <span className="flex items-center gap-1"><CreditCard className="w-4 h-4" />Pricing</span>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3">

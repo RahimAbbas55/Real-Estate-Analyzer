@@ -236,20 +236,39 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   console.log("Handling subscription deletion:", subscription.id);
   
-  const { error } = await supabase
+  const subData = subscription as unknown as Record<string, unknown>;
+  const customerId = subData.customer as string;
+  
+  // Try to update by subscription ID first
+  let { error, count } = await supabase
     .from("user_subscriptions")
     .update({
       plan: "free",
       status: "canceled",
-      stripe_subscription_id: null,
       updated_at: new Date().toISOString(),
     })
     .eq("stripe_subscription_id", subscription.id);
+
+  // If no rows updated, try by customer ID
+  if (!error && count === 0) {
+    console.log("No rows found by subscription ID, trying customer ID:", customerId);
+    const result = await supabase
+      .from("user_subscriptions")
+      .update({
+        plan: "free",
+        status: "canceled",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stripe_customer_id", customerId);
+    error = result.error;
+  }
 
   if (error) {
     console.error("Error handling subscription deletion:", error);
     throw error;
   }
+  
+  console.log("Subscription deleted successfully");
 }
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {

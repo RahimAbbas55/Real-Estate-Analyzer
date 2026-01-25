@@ -34,7 +34,7 @@ export async function createCheckoutSession(priceId: string): Promise<void> {
 
   // Get response as text first to handle non-JSON responses
   const responseText = await response.text();
-  
+  console.log(responseText)
   let data;
   try {
     data = JSON.parse(responseText);

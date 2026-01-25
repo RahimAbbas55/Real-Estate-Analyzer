@@ -1,4 +1,4 @@
-import { Home, Calculator, FileText } from "lucide-react";
+import { Home, Calculator, FileText, CreditCard } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getUsageInfo, getUserSubscription } from "@/integrations/supabase/subscription";
@@ -8,9 +8,10 @@ const BottomNav = ({ isAnalysisDisabled = false }: { isAnalysisDisabled?: boolea
   const location = useLocation();
 
   const navItems = [
-    { path: "/", icon: Home, label: "Welcome" },
+    { path: "/", icon: Home, label: "Home" },
     { path: "/analysis", icon: Calculator, label: "Analysis", disabled: isAnalysisDisabled },
     { path: "/results", icon: FileText, label: "Results" },
+    { path: "/pricing", icon: CreditCard, label: "Pricing" },
   ];
 
   return (
