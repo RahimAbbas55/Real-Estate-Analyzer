@@ -13,9 +13,7 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-01-27.acacia",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL || "",

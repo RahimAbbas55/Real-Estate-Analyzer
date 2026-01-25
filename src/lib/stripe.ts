@@ -18,10 +18,7 @@ export async function createCheckoutSession(priceId: string): Promise<void> {
     throw new Error("User not authenticated");
   }
 
-  // Use full URL for local development, relative for production
-  const apiUrl = window.location.hostname === "localhost" 
-    ? `${window.location.origin}/api/create-checkout-session`
-    : "/api/create-checkout-session";
+  const apiUrl = "/api/create-checkout-session";
 
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -35,12 +32,20 @@ export async function createCheckoutSession(priceId: string): Promise<void> {
     }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to create checkout session");
+  // Get response as text first to handle non-JSON responses
+  const responseText = await response.text();
+  
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    console.error("API returned non-JSON response:", responseText);
+    throw new Error("Server error - please check Vercel function logs");
   }
 
-  const data: CheckoutResponse = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to create checkout session");
+  }
 
   // Redirect to Stripe Checkout
   if (data.url) {
