@@ -12,7 +12,7 @@ import Results from "./pages/Results";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
-import Pricing from "./pages/Pricing";
+import Subscription from "./pages/Pricing";
 
 const queryClient = new QueryClient();
 
@@ -66,7 +66,7 @@ const App = () => (
           <Route path="/" element={<ProtectedRoute><Welcome /></ProtectedRoute>} />
           <Route path="/analysis" element={<ProtectedRoute><Analysis /></ProtectedRoute>} />
           <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
-          <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+          <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

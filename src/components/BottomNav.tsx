@@ -11,7 +11,7 @@ const BottomNav = ({ isAnalysisDisabled = false }: { isAnalysisDisabled?: boolea
     { path: "/", icon: Home, label: "Home" },
     { path: "/analysis", icon: Calculator, label: "Analysis", disabled: isAnalysisDisabled },
     { path: "/results", icon: FileText, label: "Results" },
-    { path: "/pricing", icon: CreditCard, label: "Pricing" },
+    { path: "/subscription", icon: CreditCard, label: "Subscription" },
   ];
 
   return (

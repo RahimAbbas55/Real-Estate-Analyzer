@@ -3,14 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/Layout";
 import BottomNav from "@/components/BottomNav";
-import { Check, Zap, Building2 } from "lucide-react";
+import { Check, Zap, Building2, Crown, ExternalLink, Loader2 } from "lucide-react";
 import { upgradeToPro, openCustomerPortal } from "@/lib/stripe";
 import { getUserSubscription } from "@/integrations/supabase/subscription";
 import { toast } from "sonner";
 
-const Pricing: React.FC = () => {
+const Subscription: React.FC = () => {
   const [currentPlan, setCurrentPlan] = useState<string>("free");
   const [loading, setLoading] = useState<string | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
     const loadCurrentPlan = async () => {
@@ -19,6 +20,8 @@ const Pricing: React.FC = () => {
         setCurrentPlan(subscription.plan);
       } catch (error) {
         console.error("Error loading subscription:", error);
+      } finally {
+        setPageLoading(false);
       }
     };
     loadCurrentPlan();
@@ -34,12 +37,12 @@ const Pricing: React.FC = () => {
     }
   };
 
-  const handleManageSubscription = async () => {
+  const handleManageMembership = async () => {
     setLoading("manage");
     try {
       await openCustomerPortal();
     } catch (error: any) {
-      toast.error(error.message || "Failed to open subscription management");
+      toast.error(error.message || "Failed to open membership management");
       setLoading(null);
     }
   };
@@ -82,15 +85,113 @@ const Pricing: React.FC = () => {
     },
   ];
 
+  // Loading state
+  if (pageLoading) {
+    return (
+      <Layout>
+        <div className="max-w-3xl mx-auto px-4 py-12">
+          <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading subscription details...</p>
+          </div>
+        </div>
+        <BottomNav />
+      </Layout>
+    );
+  }
+
+  // Pro user view - Manage Membership
+  if (currentPlan === "pro") {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-4 py-12">
+          <div className="text-center mb-8">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Crown className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Pro Membership
+            </h1>
+            <p className="text-muted-foreground">
+              You're enjoying unlimited access to all features
+            </p>
+          </div>
+
+          <Card className="border-primary/20 mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-primary" />
+                    Pro Plan
+                  </CardTitle>
+                  <CardDescription className="mt-1">$39/month</CardDescription>
+                </div>
+                <span className="bg-green-500/10 text-green-600 text-sm font-medium px-3 py-1 rounded-full">
+                  Active
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 mb-6">
+                <p className="text-sm text-muted-foreground font-medium">Your benefits include:</p>
+                <ul className="grid gap-2">
+                  {[
+                    "Unlimited property analyses",
+                    "Advanced AI risk assessment",
+                    "Priority email support",
+                    "Detailed repair estimates",
+                    "Export to PDF",
+                    "Cash Flow & Cap Rate analysis",
+                    "AI-Assisted Deal Risk Insights",
+                  ].map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500 shrink-0" />
+                      <span className="text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleManageMembership}
+                disabled={loading === "manage"}
+              >
+                {loading === "manage" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Opening...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Manage Membership
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-3">
+                Update payment method, view invoices, or cancel subscription
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+        <BottomNav />
+      </Layout>
+    );
+  }
+
+  // Free user view - Show plans
   return (
     <Layout>
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            Simple, Transparent Pricing
+            Choose Your Plan
           </h1>
           <p className="text-xl text-muted-foreground">
-            Choose the plan that fits your investment strategy
+            Unlock unlimited analyses and advanced features
           </p>
         </div>
 
@@ -146,29 +247,24 @@ const Pricing: React.FC = () => {
                       if (plan.id === "pro") handleUpgrade();
                     }}
                   >
-                    {loading === plan.id ? "Loading..." : plan.buttonText}
+                    {loading === plan.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      plan.buttonText
+                    )}
                   </Button>
                 </CardContent>
               </Card>
             );
           })}
         </div>
-
-        {currentPlan !== "free" && (
-          <div className="text-center">
-            <Button
-              variant="outline"
-              onClick={handleManageSubscription}
-              disabled={loading === "manage"}
-            >
-              {loading === "manage" ? "Loading..." : "Manage Subscription"}
-            </Button>
-          </div>
-        )}
       </div>
       <BottomNav />
     </Layout>
   );
 };
 
-export default Pricing;
+export default Subscription;
