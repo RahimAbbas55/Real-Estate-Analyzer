@@ -2,24 +2,6 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-// Check for required environment variables
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.error("Missing STRIPE_SECRET_KEY environment variable");
-}
-if (!process.env.VITE_SUPABASE_URL) {
-  console.error("Missing VITE_SUPABASE_URL environment variable");
-}
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-);
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Add CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -34,20 +16,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Check environment variables at runtime
-  if (!process.env.STRIPE_SECRET_KEY || !process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error("Missing required environment variables");
-    return res.status(500).json({ error: "Server configuration error - missing environment variables" });
+  // Check environment variables
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!stripeKey || !supabaseUrl || !supabaseServiceKey) {
+    return res.status(500).json({ 
+      error: "Missing environment variables",
+      missing: {
+        STRIPE_SECRET_KEY: !stripeKey,
+        VITE_SUPABASE_URL: !supabaseUrl,
+        SUPABASE_SERVICE_ROLE_KEY: !supabaseServiceKey
+      }
+    });
   }
 
   try {
+    const stripe = new Stripe(stripeKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const { userId, userEmail, priceId } = req.body;
 
     if (!userId || !userEmail || !priceId) {
       return res.status(400).json({ error: "Missing required fields", received: { userId, userEmail, priceId } });
     }
-
-    console.log("Creating checkout session for:", { userId, userEmail, priceId });
 
     // Check if user already has a Stripe customer ID
     const { data: existingSubscription } = await supabase
@@ -93,6 +86,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ sessionId: session.id, url: session.url });
   } catch (error: any) {
     console.error("Error creating checkout session:", error);
-    return res.status(500).json({ error: error.message || "Internal server error" });
+    return res.status(500).json({ error: error.message || "Internal server error", stack: error.stack });
   }
 }
