@@ -144,8 +144,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     plan = "enterprise";
   }
 
-  const periodStart = subData.current_period_start as number;
-  const periodEnd = subData.current_period_end as number;
+  const periodStart = subData.current_period_start as number | undefined;
+  const periodEnd = subData.current_period_end as number | undefined;
+  
+  console.log("Subscription data:", { periodStart, periodEnd, subscriptionId });
+
+  // Calculate period dates with fallbacks
+  const now = new Date();
+  const periodStartDate = periodStart ? new Date(periodStart * 1000) : now;
+  const periodEndDate = periodEnd ? new Date(periodEnd * 1000) : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
   // Update or create user subscription in Supabase
   const { error } = await supabase
@@ -156,8 +163,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       status: "active",
       stripe_customer_id: customerId,
       stripe_subscription_id: subscriptionId,
-      current_period_start: new Date(periodStart * 1000).toISOString(),
-      current_period_end: new Date(periodEnd * 1000).toISOString(),
+      current_period_start: periodStartDate.toISOString(),
+      current_period_end: periodEndDate.toISOString(),
       updated_at: new Date().toISOString(),
     }, {
       onConflict: "user_id",
@@ -199,16 +206,21 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
                  subscriptionStatus === "past_due" ? "past_due" :
                  subscriptionStatus === "canceled" ? "canceled" : "incomplete";
 
-  const periodStart = subData.current_period_start as number;
-  const periodEnd = subData.current_period_end as number;
+  const periodStart = subData.current_period_start as number | undefined;
+  const periodEnd = subData.current_period_end as number | undefined;
+
+  // Calculate period dates with fallbacks
+  const now = new Date();
+  const periodStartDate = periodStart ? new Date(periodStart * 1000) : now;
+  const periodEndDate = periodEnd ? new Date(periodEnd * 1000) : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const { error } = await supabase
     .from("user_subscriptions")
     .update({
       plan: plan,
       status: status,
-      current_period_start: new Date(periodStart * 1000).toISOString(),
-      current_period_end: new Date(periodEnd * 1000).toISOString(),
+      current_period_start: periodStartDate.toISOString(),
+      current_period_end: periodEndDate.toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("stripe_subscription_id", subscription.id);
@@ -251,15 +263,22 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   // Update the subscription period
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const subData = subscription as unknown as Record<string, unknown>;
-  const periodStart = subData.current_period_start as number;
-  const periodEnd = subData.current_period_end as number;
+  const periodStart = subData.current_period_start as number | undefined;
+  const periodEnd = subData.current_period_end as number | undefined;
+  
+  console.log("Invoice subscription data:", { periodStart, periodEnd, subscriptionId });
+
+  // Calculate period dates with fallbacks
+  const now = new Date();
+  const periodStartDate = periodStart ? new Date(periodStart * 1000) : now;
+  const periodEndDate = periodEnd ? new Date(periodEnd * 1000) : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   
   const { error } = await supabase
     .from("user_subscriptions")
     .update({
       status: "active",
-      current_period_start: new Date(periodStart * 1000).toISOString(),
-      current_period_end: new Date(periodEnd * 1000).toISOString(),
+      current_period_start: periodStartDate.toISOString(),
+      current_period_end: periodEndDate.toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("stripe_subscription_id", subscriptionId);
@@ -281,8 +300,8 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
       .upsert({
         user_id: sub.user_id,
         analysis_count: 0,
-        period_start: new Date(periodStart * 1000).toISOString(),
-        period_end: new Date(periodEnd * 1000).toISOString(),
+        period_start: periodStartDate.toISOString(),
+        period_end: periodEndDate.toISOString(),
         updated_at: new Date().toISOString(),
       }, {
         onConflict: "user_id",
