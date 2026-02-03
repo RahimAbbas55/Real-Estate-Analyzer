@@ -23,9 +23,13 @@ const Header = ({ isAnalysisDisabled = false }: { isAnalysisDisabled?: boolean }
     <header className="w-full border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/') }>
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">HF</div>
+          <img 
+            src="/image_assets/logo/Color logo with background.png" 
+            alt="REPA Logo" 
+            className="h-10 w-auto rounded-lg"
+          />
           <div>
-            <div className="text-sm font-semibold text-foreground">Real Estate Analyzer</div>
+            <div className="text-sm font-semibold text-foreground">REPA</div>
             <div className="text-xs text-muted-foreground">Property analysis made simple</div>
           </div>
         </div>
