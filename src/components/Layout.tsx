@@ -61,7 +61,14 @@ const Header = ({ isAnalysisDisabled = false }: { isAnalysisDisabled?: boolean }
 
 const Footer = () => (
   <footer className="w-full border-t border-border bg-card mt-8">
-    <div className="max-w-7xl mx-auto px-4 py-5 text-sm text-muted-foreground text-center">© {new Date().getFullYear()} House Finder Mate — Built with ❤️</div>
+    <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+      <img 
+        src="/image_assets/logo/Color logo with background.png" 
+        alt="REPA Logo" 
+        className="h-6 w-auto rounded"
+      />
+      <span>© {new Date().getFullYear()} REPA — Built with ❤️</span>
+    </div>
   </footer>
 );
 

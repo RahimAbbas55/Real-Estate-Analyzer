@@ -70,7 +70,14 @@ const ResetPassword: React.FC = () => {
   return (
     <Layout>
       <div className="max-w-md mx-auto px-4 py-12">
-        <h1 className="text-2xl font-bold mb-6 text-center">Reset Password</h1>
+        <div className="flex flex-col items-center mb-6">
+          <img 
+            src="/image_assets/logo/Color logo with background.png" 
+            alt="REPA Logo" 
+            className="h-14 w-auto rounded-xl mb-4"
+          />
+          <h1 className="text-2xl font-bold text-center">Reset Password</h1>
+        </div>
         {isUpdateMode ? (
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div>

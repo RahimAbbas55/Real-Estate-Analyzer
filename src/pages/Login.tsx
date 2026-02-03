@@ -60,7 +60,11 @@ const Login = () => {
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
-          <div className="mx-auto w-14 h-14 rounded-xl bg-linear-to-tr from-primary/20 to-primary/5 flex items-center justify-center text-primary font-extrabold text-lg">HF</div>
+          <img 
+            src="/image_assets/logo/Color logo with background.png" 
+            alt="REPA Logo" 
+            className="mx-auto h-14 w-auto rounded-xl"
+          />
           <CardTitle className="text-2xl font-bold">{isSignup ? "Create Account" : "Welcome Back"}</CardTitle>
           <CardDescription className="text-center">
             {isSignup ? "Sign up to start analyzing properties" : "Sign in to access your property analyzer"}
