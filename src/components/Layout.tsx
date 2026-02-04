@@ -77,7 +77,7 @@ const Layout: React.FC<{ children: React.ReactNode, isAnalysisDisabled?: boolean
     <div className="min-h-screen bg-background text-foreground">
       <Header isAnalysisDisabled={isAnalysisDisabled} />
 
-      <main className="max-w-6xl mx-auto px-4 py-10">
+      <main className="max-w-6xl mx-auto px-4 py-10 pb-24 md:pb-10">
         {children}
       </main>
 
