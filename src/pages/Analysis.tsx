@@ -201,11 +201,11 @@ const Analysis: React.FC = () => {
       return;
     }
 
-    // per-file limit: 5MB for images
-    const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+    // per-file limit: 10MB for images
+    const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
     const filtered = imageFiles.filter((f) => {
       if (f.size > MAX_IMAGE_BYTES) {
-        toast.error(`${f.name} is too large (max 5MB)`);
+        toast.error(`${f.name} is too large (max 10MB)`);
         return false;
       }
       return true;
@@ -219,7 +219,7 @@ const Analysis: React.FC = () => {
         let processedFile = file;
         if (file.size > 1024 * 1024) { // 1MB
           processedFile = await imageCompression(file, {
-            maxSizeMB: 5,
+            maxSizeMB: 10,
             maxWidthOrHeight: 1920,
             useWebWorker: true,
           });
