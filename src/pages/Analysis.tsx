@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
@@ -30,7 +30,7 @@ const formSchema = z.object({
   streetAddress: z.string().nonempty("Street address is required"),
   city: z.string().nonempty("City is required"),
   state: z.string().nonempty("State is required"),
-  zipCode: z.string().min(3, "Valid ZIP code required"),
+  zipCode: z.string().regex(/^\d{5}$/, "ZIP code must be exactly 5 digits"),
   propertyType: z.string().nonempty("Property type is required"),
   bedrooms: z.string().nonempty("Bedrooms required"),
   bathrooms: z.string().nonempty("Bathrooms required"),
@@ -51,6 +51,9 @@ const formSchema = z.object({
 });
 
 type FormData = z.infer<typeof formSchema>;
+
+const DRAFT_KEY = "repa_draft";
+const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 // Enhanced Select Component
 const EnhancedSelect = ({ value, onValueChange, placeholder, options, error, disabled }) => {
@@ -155,11 +158,14 @@ const Analysis: React.FC = () => {
     register,
     handleSubmit,
     setValue,
+    getValues,
     trigger,
     control,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
     defaultValues: {
       vacancyRate: 5,
       propertyManagement: 10,
@@ -184,6 +190,77 @@ const Analysis: React.FC = () => {
       loanTerm: "",
     } as Partial<FormData>,
   });
+
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
+  const draftRef = useRef<(Partial<FormData> & { currentStep?: number; savedAt?: string }) | null>(null);
+
+  // Check for a recent saved draft on mount and offer to restore it
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw);
+      const savedAtMs = new Date(parsed?.savedAt).getTime();
+      const isRecent = !isNaN(savedAtMs) && Date.now() - savedAtMs < DRAFT_MAX_AGE_MS;
+
+      if (isRecent) {
+        draftRef.current = parsed;
+        setShowDraftBanner(true);
+      } else {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    } catch (error) {
+      // corrupt/inaccessible draft — ignore and continue with a fresh form
+    }
+  }, []);
+
+  const saveDraft = (step: number) => {
+    try {
+      const values = getValues();
+      const draft = { ...values, currentStep: step, savedAt: new Date().toISOString() };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      toast.success("Draft saved", { duration: 2000, position: "bottom-center" });
+    } catch (error) {
+      // localStorage unavailable (e.g., private browsing) — fail silently
+    }
+  };
+
+  const handleRestoreDraft = () => {
+    const draft = draftRef.current;
+    if (!draft) {
+      setShowDraftBanner(false);
+      return;
+    }
+
+    const { savedAt, currentStep: savedStep, ...fields } = draft;
+
+    (Object.keys(fields) as (keyof FormData)[]).forEach((key) => {
+      const fieldValue = fields[key];
+      if (fieldValue !== undefined) {
+        setValue(key, fieldValue as FormData[typeof key], { shouldDirty: true });
+      }
+    });
+
+    if (typeof fields.vacancyRate === "number") setVacancyRate(fields.vacancyRate);
+    if (typeof fields.propertyManagement === "number") setPropertyManagement(fields.propertyManagement);
+    if (typeof fields.maintenanceReserve === "number") setMaintenanceReserve(fields.maintenanceReserve);
+    if (typeof fields.downPayment === "number") setDownPayment(fields.downPayment);
+    if (savedStep) setCurrentStep(savedStep);
+
+    setShowDraftBanner(false);
+    toast.success("Draft restored");
+  };
+
+  const handleDiscardDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch (error) {
+      // ignore
+    }
+    draftRef.current = null;
+    setShowDraftBanner(false);
+  };
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -391,6 +468,13 @@ const Analysis: React.FC = () => {
       // Show the modal immediately
       setShowAnalysisPopup(true);
 
+      // Clear the saved draft now that the analysis has been submitted
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch (error) {
+        // ignore
+      }
+
       // Send the request asynchronously without blocking
       (async () => {
         try {
@@ -543,25 +627,55 @@ const Analysis: React.FC = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          <div className="mb-3">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-              <div>Step {currentStep} of 4</div>
-              <div className="font-medium">
-                {currentStep === 1
-                  ? "Property"
-                  : currentStep === 2
-                  ? "Financial"
-                  : currentStep === 3
-                  ? "Photos"
-                  : "Reports"}
+        {showDraftBanner && (
+          <div className="mb-6 p-4 bg-primary/5 border border-primary/30 rounded-lg flex items-start gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                We saved your progress. Continue where you left off?
+              </p>
+              <div className="flex gap-2 mt-3">
+                <Button type="button" size="sm" onClick={handleRestoreDraft}>
+                  Restore
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDiscardDraft}
+                >
+                  Start fresh
+                </Button>
               </div>
             </div>
-            <div className="w-full bg-border rounded-full h-2 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowDraftBanner(false)}
+              aria-label="Dismiss"
+              className="text-muted-foreground hover:text-foreground shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          <div className="mb-3">
+            <div className="w-full bg-border rounded-full h-1 overflow-hidden">
               <div
-                className="h-2 bg-primary transition-all"
-                style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
+                className="h-1 bg-primary rounded-full transition-all duration-500 ease-in-out"
+                style={{ width: `${(currentStep / 4) * 100}%` }}
               />
+            </div>
+            <div className="text-xs text-muted-foreground mt-2 text-center">
+              Step {currentStep} of 4 — {
+                currentStep === 1
+                  ? "Property Details"
+                  : currentStep === 2
+                  ? "Financial Details"
+                  : currentStep === 3
+                  ? "Photos"
+                  : "Reports"
+              }
             </div>
           </div>
           <div className="flex items-center justify-between mb-4">
@@ -597,6 +711,7 @@ const Analysis: React.FC = () => {
                   id="streetAddress"
                   {...register("streetAddress")}
                   placeholder="123 Main St"
+                  className={errors.streetAddress ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
                 {errors.streetAddress && (
                   <p className="text-sm text-destructive mt-1">
@@ -614,6 +729,7 @@ const Analysis: React.FC = () => {
                   {...register("city")}
                   placeholder={isZipLookupLoading ? "Loading..." : "San Francisco"}
                   disabled={isZipLookupLoading}
+                  className={errors.city ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
                 {errors.city && (
                   <p className="text-sm text-destructive mt-1">
@@ -657,7 +773,11 @@ const Analysis: React.FC = () => {
                     onBlur: (e) => handleZipBlur(e.target.value),
                   })}
                   placeholder="94102"
+                  className={errors.zipCode ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                <p className="mt-1" style={{ fontSize: "12px", color: "#9ca3af" }}>
+                  Used to pull local market comps and rental rates
+                </p>
                 {errors.zipCode && (
                   <p className="text-sm text-destructive mt-1">
                     {errors.zipCode.message}
@@ -682,6 +802,9 @@ const Analysis: React.FC = () => {
                     />
                   )}
                 />
+                <p className="mt-1" style={{ fontSize: "12px", color: "#9ca3af" }}>
+                  Helps tailor expense assumptions and financing terms for your analysis
+                </p>
                 {errors.propertyType && (
                   <p className="text-sm text-destructive mt-1">
                     {errors.propertyType.message}
@@ -1220,15 +1343,19 @@ const Analysis: React.FC = () => {
                 onClick={async () => {
                   if (currentStep === 1) {
                     const ok = await trigger(fieldsStep1);
-                    if (ok) setCurrentStep(2);
-                    else
+                    if (ok) {
+                      setCurrentStep(2);
+                      saveDraft(2);
+                    } else
                       toast.error(
                         "Please fill required fields in property details"
                       );
                   } else if (currentStep === 2) {
                     const ok = await trigger(fieldsStep2);
-                    if (ok) setCurrentStep(3);
-                    else
+                    if (ok) {
+                      setCurrentStep(3);
+                      saveDraft(3);
+                    } else
                       toast.error(
                         "Please fill required fields in financials/financing"
                       );
@@ -1238,6 +1365,7 @@ const Analysis: React.FC = () => {
                       return;
                     }
                     setCurrentStep(4);
+                    saveDraft(4);
                   }
                 }}
               >
