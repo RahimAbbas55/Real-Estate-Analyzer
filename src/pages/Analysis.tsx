@@ -53,7 +53,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 // Enhanced Select Component
-const EnhancedSelect = ({ value, onValueChange, placeholder, options, error }) => {
+const EnhancedSelect = ({ value, onValueChange, placeholder, options, error, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   
   const selectedOption = options.find(opt => opt.value === value);
@@ -62,6 +62,7 @@ const EnhancedSelect = ({ value, onValueChange, placeholder, options, error }) =
     <div className="relative">
       <button
         type="button"
+        disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
         className={`
           w-full px-4 py-3 text-left bg-card border rounded-lg
@@ -73,6 +74,7 @@ const EnhancedSelect = ({ value, onValueChange, placeholder, options, error }) =
               : 'border-input hover:border-primary/50'
           }
           ${!value ? 'text-muted-foreground' : 'text-foreground'}
+          ${disabled ? 'opacity-60 cursor-not-allowed' : ''}
           focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
         `}
       >
@@ -144,6 +146,7 @@ const Analysis: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isUploading, setIsUploading] = useState(false);
   const [showAnalysisPopup, setShowAnalysisPopup] = useState(false);
+  const [isZipLookupLoading, setIsZipLookupLoading] = useState(false);
 
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const reportInputRef = useRef<HTMLInputElement | null>(null);
@@ -267,6 +270,29 @@ const Analysis: React.FC = () => {
 
   const removeReport = (index: number) => {
     setInspectionReports((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleZipBlur = async (zip: string) => {
+    if (!/^\d{5}$/.test(zip)) return;
+
+    setIsZipLookupLoading(true);
+    try {
+      const response = await fetch(`https://api.zippopotam.us/us/${zip}`);
+      if (!response.ok) return;
+      const data = await response.json();
+      const place = data?.places?.[0];
+      if (!place) return;
+
+      const cityName = place["place name"];
+      const stateAbbr = place["state abbreviation"];
+
+      if (cityName) setValue("city", cityName, { shouldValidate: true });
+      if (stateAbbr) setValue("state", stateAbbr, { shouldValidate: true });
+    } catch (error) {
+      // fail silently — user can still fill in City/State manually
+    } finally {
+      setIsZipLookupLoading(false);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -586,7 +612,8 @@ const Analysis: React.FC = () => {
                 <Input
                   id="city"
                   {...register("city")}
-                  placeholder="San Francisco"
+                  placeholder={isZipLookupLoading ? "Loading..." : "San Francisco"}
+                  disabled={isZipLookupLoading}
                 />
                 {errors.city && (
                   <p className="text-sm text-destructive mt-1">
@@ -606,9 +633,10 @@ const Analysis: React.FC = () => {
                     <EnhancedSelect
                       value={field.value}
                       onValueChange={field.onChange}
-                      placeholder="Select state..."
+                      placeholder={isZipLookupLoading ? "Loading..." : "Select state..."}
                       options={stateOptions}
                       error={errors.state}
+                      disabled={isZipLookupLoading}
                     />
                   )}
                 />
@@ -625,7 +653,9 @@ const Analysis: React.FC = () => {
                 </Label>
                 <Input
                   id="zipCode"
-                  {...register("zipCode")}
+                  {...register("zipCode", {
+                    onBlur: (e) => handleZipBlur(e.target.value),
+                  })}
                   placeholder="94102"
                 />
                 {errors.zipCode && (
@@ -1055,7 +1085,7 @@ const Analysis: React.FC = () => {
                         className="flex items-center justify-between p-3 bg-muted rounded-lg"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Image className="w-5 h-5 text-primary flex-shrink-0" />
+                          <Image className="w-5 h-5 text-primary shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">
                               {file.name}
@@ -1070,7 +1100,7 @@ const Analysis: React.FC = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => removePhoto(index)}
-                          className="flex-shrink-0"
+                          className="shrink-0"
                         >
                           <X className="w-4 h-4" />
                         </Button>
