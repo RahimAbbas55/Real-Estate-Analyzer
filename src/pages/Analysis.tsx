@@ -148,7 +148,6 @@ const Analysis: React.FC = () => {
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const reportInputRef = useRef<HTMLInputElement | null>(null);
 
-
   const {
     register,
     handleSubmit,

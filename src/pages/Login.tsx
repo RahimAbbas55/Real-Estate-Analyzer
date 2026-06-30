@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,38 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
+
+  useEffect(() => {
+    const prevTitle = document.title;
+    document.title = "Sign In | REPA \u2014 Real Estate Property Analyzer";
+
+    const setMeta = (selector: string, attr: string, value: string) => {
+      let el = document.querySelector(selector) as HTMLMetaElement | null;
+      if (!el) {
+        el = document.createElement("meta");
+        const [attrName, attrValue] = selector.replace(/^meta\[/, "").replace(/\]$/, "").split("=").map(s => s.replace(/"/g, ""));
+        el.setAttribute(attrName, attrValue);
+        document.head.appendChild(el);
+      }
+      const prev = el.getAttribute(attr);
+      el.setAttribute(attr, value);
+      return () => { if (prev !== null) el!.setAttribute(attr, prev); else el!.remove(); };
+    };
+
+    const restores = [
+      setMeta('meta[name="description"]', "content", "Analyze any investment property in minutes — get AI-powered cap rate, cash flow, ROI, and risk scoring to make smarter real estate decisions."),
+      setMeta('meta[property="og:title"]', "content", "Sign In | REPA \u2014 Real Estate Property Analyzer"),
+      setMeta('meta[property="og:image"]', "content", "/repa-og-image.png"),
+      setMeta('meta[property="og:type"]', "content", "website"),
+      setMeta('meta[property="og:url"]', "content", window.location.href),
+    ];
+
+    return () => {
+      document.title = prevTitle;
+      restores.forEach(r => r());
+    };
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +136,19 @@ const Login = () => {
               </div>
             </div>
 
+            <div className="flex items-center gap-2">
+              <input
+                id="keep-signed-in"
+                type="checkbox"
+                checked={keepSignedIn}
+                onChange={(e) => setKeepSignedIn(e.target.checked)}
+                className="h-4 w-4 cursor-pointer"
+              />
+              <label htmlFor="keep-signed-in" className="text-sm text-foreground cursor-pointer select-none">
+                Keep me signed in
+              </label>
+            </div>
+
             <Button
               type="button"
               variant="link"
@@ -117,6 +162,14 @@ const Login = () => {
               {loading ? (isSignup ? "Signing up..." : "Signing in...") : (isSignup ? "Sign Up" : "Sign In")}
             </Button>
 
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "6px", fontSize: "11px", color: "#888", marginTop: "2px" }}>
+              <span>🔒 256-bit SSL</span>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <span>✓ Encrypted data</span>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <span>🛡 Secure storage</span>
+            </div>
+
             <div className="text-center">
               <Button
                 type="button"
@@ -127,6 +180,13 @@ const Login = () => {
                 {isSignup ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
               </Button>
             </div>
+
+            <p style={{ textAlign: "center", fontSize: "11px", color: "#888", marginTop: "2px" }}>
+              Need help?{" "}
+              <a href="mailto:support@repa.io" style={{ color: "#888", textDecoration: "underline" }}>
+                support@repa.io
+              </a>
+            </p>
           </form>
         </CardContent>
         </Card>
