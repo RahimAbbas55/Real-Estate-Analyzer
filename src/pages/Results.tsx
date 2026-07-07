@@ -519,15 +519,44 @@ const Results: React.FC = () => {
                 </div>
 
                 <div className="mt-4 bg-muted/5 p-4 rounded">
-                  <h3 className="font-semibold mb-2">Financial Breakdown</h3>
-                  {selected.content.financial_breakdown ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div className="flex justify-between"><span>Monthly Income</span><span>${formatNumber((selected.content.financial_breakdown as Record<string, unknown>)?.monthly_income ?? 0)}</span></div>
-                      <div className="flex justify-between"><span>Monthly Expenses</span><span>${formatNumber((selected.content.financial_breakdown as Record<string, unknown>)?.monthly_expenses ?? 0)}</span></div>
-                      <div className="flex justify-between"><span>NOI</span><span>${formatNumber((selected.content.financial_breakdown as Record<string, unknown>)?.net_operating_income_monthly ?? 0)}</span></div>
-                      <div className="flex justify-between"><span>Debt Service</span><span>${formatNumber((selected.content.financial_breakdown as Record<string, unknown>)?.debt_service ?? 0)}</span></div>
-                    </div>
-                  ) : (
+                  <h3 className="font-semibold mb-3">Financial Breakdown</h3>
+                  {selected.content.financial_breakdown ? (() => {
+                    const fb = selected.content.financial_breakdown as Record<string, unknown>;
+                    const monthlyIncome = Number(fb?.monthly_income ?? 0);
+                    const monthlyExpenses = Number(fb?.monthly_expenses ?? 0);
+                    const noi = Number(fb?.net_operating_income_monthly ?? 0);
+                    const debtService = Number(fb?.debt_service ?? 0);
+                    const rows = [
+                      { incomeCat: "Monthly Income", incomeAmt: monthlyIncome, expenseCat: "Monthly Expenses", expenseAmt: monthlyExpenses },
+                      { incomeCat: "NOI", incomeAmt: noi, expenseCat: "Debt Service", expenseAmt: debtService },
+                    ];
+                    return (
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr className="border-b border-border text-muted-foreground text-xs uppercase tracking-wide">
+                            <th className="text-left py-1.5 pr-3 font-medium">Income</th>
+                            <th className="text-right py-1.5 pr-6 font-medium tabular-nums">Amount</th>
+                            <th className="text-left py-1.5 pr-3 font-medium">Expense</th>
+                            <th className="text-right py-1.5 font-medium tabular-nums">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((row, i) => (
+                            <tr key={i} className="border-b border-border/40 last:border-0">
+                              <td className="py-2 pr-3">{row.incomeCat}</td>
+                              <td className={`text-right py-2 pr-6 tabular-nums ${row.incomeAmt < 0 ? "text-red-600" : ""}`}>
+                                ${formatNumber(row.incomeAmt)}
+                              </td>
+                              <td className="py-2 pr-3">{row.expenseCat}</td>
+                              <td className="text-right py-2 tabular-nums" style={{ color: "#dc2626" }}>
+                                ${formatNumber(row.expenseAmt)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    );
+                  })() : (
                     <p className="text-sm text-muted-foreground">-</p>
                   )}
                 </div>
