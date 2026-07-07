@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, X, Lock, Search } from "lucide-react";
+import { ChevronRight, X, Lock, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { getUserSubscription, getUsageInfo } from "@/integrations/supabase/subscription";
@@ -28,6 +28,13 @@ const Results: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "cap_rate" | "cash_flow">("newest");
   const [filterPill, setFilterPill] = useState<"all" | "strong" | "marginal">("all");
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    await supabase.from("property_analysis").delete().eq("id", id);
+    setList((prev) => prev.filter((e) => e.id !== id));
+    setConfirmingDeleteId(null);
+  };
 
   useEffect(() => {
     const loadSubscriptionInfo = async () => {
@@ -301,10 +308,41 @@ const Results: React.FC = () => {
               return (
                 <Card
                   key={entry.id}
-                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  className="relative group hover:shadow-lg transition-shadow cursor-pointer"
                   style={{ borderLeft: `4px solid ${getDealQualityBorderColor(Number(cap))}` }}
                   onClick={() => setSelected(entry)}
                 >
+                  {confirmingDeleteId === entry.id ? (
+                    <div
+                      className="absolute top-2 right-2 flex items-center gap-1 z-10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="text-xs text-muted-foreground">Delete?</span>
+                      <button
+                        onClick={() => handleDelete(entry.id)}
+                        className="text-xs px-2 py-0.5 rounded bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setConfirmingDeleteId(null)}
+                        className="text-xs px-2 py-0.5 rounded border border-border hover:bg-muted transition-colors"
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmingDeleteId(entry.id);
+                      }}
+                      aria-label="Delete analysis"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                   <CardContent className="p-4 flex items-center justify-between gap-4">
                     <div>
                       <div className="text-sm text-muted-foreground">{formatRelativeDate(entry.createdAt)}</div>
