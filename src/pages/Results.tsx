@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, X, Lock, Search, Trash2 } from "lucide-react";
+import { ChevronRight, X, Lock, Search, Trash2, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { getUserSubscription, getUsageInfo } from "@/integrations/supabase/subscription";
@@ -68,11 +68,16 @@ const Results: React.FC = () => {
   const [selected, setSelected] = useState<AnalysisEntry | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
+  const [isEnterprise, setIsEnterprise] = useState(false);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "cap_rate" | "cash_flow">("newest");
   const [filterPill, setFilterPill] = useState<"all" | "strong" | "marginal">("all");
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+
+  const exportToPDF = (id: string) => {
+    console.log("Export PDF for analysis:", id);
+  };
 
   const handleDelete = async (id: string) => {
     await supabase.from("property_analysis").delete().eq("id", id);
@@ -88,6 +93,7 @@ const Results: React.FC = () => {
         if (subscription.plan === "free" && usage.currentCount >= 3) {
           setIsLimitReached(true);
         }
+        setIsEnterprise(subscription.plan === "enterprise");
       } catch (error) {
         // silent fail
       } finally {
@@ -422,9 +428,28 @@ const Results: React.FC = () => {
                     <h2 className="text-xl font-bold">Detailed Analysis</h2>
                     <div className="text-sm text-muted-foreground">{formatRelativeDate(selected.createdAt)}</div>
                   </div>
-                  <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground">
-                    <X className="h-6 w-6" />
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isEnterprise ? (
+                      <button
+                        onClick={() => exportToPDF(selected.id)}
+                        className="flex items-center gap-1.5 text-sm border border-border rounded px-3 py-1.5 hover:bg-muted/50 transition-colors"
+                      >
+                        <FileDown className="h-4 w-4" />
+                        <span className="hidden sm:inline">Download PDF Report</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => navigate("/subscription")}
+                        className="flex items-center gap-1.5 text-sm border border-border rounded px-3 py-1.5 text-muted-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        <Lock className="h-4 w-4" />
+                        <span className="hidden sm:inline">Download PDF — Upgrade to Enterprise</span>
+                      </button>
+                    )}
+                    <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground">
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
                 </div>
 
                 {selected.content.final_verdict && (() => {
