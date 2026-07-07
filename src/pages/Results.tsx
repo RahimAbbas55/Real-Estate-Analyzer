@@ -565,11 +565,41 @@ const Results: React.FC = () => {
                   <h3 className="font-semibold mb-2">Repair Estimate</h3>
                   {selected.content.repair_estimate ? (
                     <div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm mb-4">
-                        <div className="flex justify-between"><span>Total Low</span><span>${formatNumber((selected.content.repair_estimate as any)?.total_low)}</span></div>
-                        <div className="flex justify-between"><span>Total Mid</span><span>${formatNumber((selected.content.repair_estimate as any)?.total_mid)}</span></div>
-                        <div className="flex justify-between"><span>Total High</span><span>${formatNumber((selected.content.repair_estimate as any)?.total_high)}</span></div>
-                      </div>
+                      {(() => {
+                        const re = selected.content.repair_estimate as any;
+                        const low = Number(re?.total_low ?? 0);
+                        const mid = Number(re?.total_mid ?? 0);
+                        const high = Number(re?.total_high ?? 0);
+                        const range = high - low || 1;
+                        const midPct = Math.max(5, Math.min(95, ((mid - low) / range) * 100));
+                        return (
+                          <div className="mb-5 mt-1 select-none">
+                            {/* Dollar value labels above */}
+                            <div className="relative h-5 text-xs tabular-nums mb-2">
+                              <span className="absolute left-0 font-medium">${formatNumber(low)}</span>
+                              <span className="absolute -translate-x-1/2 font-medium" style={{ left: `${midPct}%` }}>
+                                ${formatNumber(mid)}
+                              </span>
+                              <span className="absolute right-0 font-medium">${formatNumber(high)}</span>
+                            </div>
+                            {/* Bar track */}
+                            <div className="relative h-2 rounded-full bg-amber-200 dark:bg-amber-900/40" style={{ overflow: 'visible' }}>
+                              {/* Low dot */}
+                              <div className="absolute top-1/2 w-3 h-3 rounded-full bg-amber-400" style={{ left: 0, transform: 'translate(-50%, -50%)' }} />
+                              {/* Mid dot — slightly larger */}
+                              <div className="absolute top-1/2 w-4 h-4 rounded-full bg-amber-500 shadow-sm" style={{ left: `${midPct}%`, transform: 'translate(-50%, -50%)' }} />
+                              {/* High dot */}
+                              <div className="absolute top-1/2 w-3 h-3 rounded-full bg-amber-600 dark:bg-amber-400" style={{ left: '100%', transform: 'translate(-50%, -50%)' }} />
+                            </div>
+                            {/* Point labels below */}
+                            <div className="relative h-5 text-xs text-muted-foreground mt-1.5">
+                              <span className="absolute left-0">Low</span>
+                              <span className="absolute -translate-x-1/2" style={{ left: `${midPct}%` }}>Mid</span>
+                              <span className="absolute right-0">High</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <h4 className="font-semibold mb-2">Line Items</h4>
                       <div className="space-y-1">
                         {((selected.content.repair_estimate as any)?.line_items || []).map((item: any, index: number) => (
