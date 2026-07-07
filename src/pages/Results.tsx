@@ -86,6 +86,12 @@ const Results: React.FC = () => {
     fetchAnalysisResults();
   }, []);
 
+  const getDealQualityBorderColor = (capRate: number): string => {
+    if (capRate >= 10) return "#16a34a";
+    if (capRate >= 7) return "#d97706";
+    return "#dc2626";
+  };
+
   const camelToSnake = (s: string) => s.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase());
 
   const extract = (entry: AnalysisEntry, keys: (keyof PropertyAnalysis)[]): unknown => {
@@ -195,7 +201,12 @@ const Results: React.FC = () => {
               const address = entry.content.property_address;
 
               return (
-                <Card key={entry.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelected(entry)}>
+                <Card
+                  key={entry.id}
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  style={{ borderLeft: `4px solid ${getDealQualityBorderColor(Number(cap))}` }}
+                  onClick={() => setSelected(entry)}
+                >
                   <CardContent className="p-4 flex items-center justify-between gap-4">
                     <div>
                       <div className="text-sm text-muted-foreground">{formatRelativeDate(entry.createdAt)}</div>
