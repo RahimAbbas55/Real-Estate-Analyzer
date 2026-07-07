@@ -4,6 +4,7 @@ import { ChevronRight, X, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { getUserSubscription, getUsageInfo } from "@/integrations/supabase/subscription";
+import { formatRelativeDate } from "@/lib/utils";
 import BottomNav from "@/components/BottomNav";
 import Layout from "@/components/Layout";
 
@@ -197,7 +198,7 @@ const Results: React.FC = () => {
                 <Card key={entry.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelected(entry)}>
                   <CardContent className="p-4 flex items-center justify-between gap-4">
                     <div>
-                      <div className="text-sm text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</div>
+                      <div className="text-sm text-muted-foreground">{formatRelativeDate(entry.createdAt)}</div>
                       {address && <div className="text-sm font-medium text-foreground truncate">{address}</div>}
                       <div className="text-lg font-semibold text-foreground">${formatNumber(monthly)}</div>
                       <div className="text-sm text-muted-foreground">Monthly Cash Flow</div>
@@ -228,7 +229,7 @@ const Results: React.FC = () => {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-xl font-bold">Detailed Analysis</h2>
-                    <div className="text-sm text-muted-foreground">{new Date(selected.createdAt).toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">{formatRelativeDate(selected.createdAt)}</div>
                   </div>
                   <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground">
                     <X className="h-6 w-6" />
