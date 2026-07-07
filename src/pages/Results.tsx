@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, X, Lock, Search, Trash2, FileDown } from "lucide-react";
+import { ChevronRight, X, Lock, Search, Trash2, FileDown, ExternalLink, Link2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { getUserSubscription, getUsageInfo } from "@/integrations/supabase/subscription";
@@ -74,6 +74,8 @@ const Results: React.FC = () => {
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "cap_rate" | "cash_flow">("newest");
   const [filterPill, setFilterPill] = useState<"all" | "strong" | "marginal">("all");
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [driveLinkEditing, setDriveLinkEditing] = useState(false);
+  const [driveLinkInput, setDriveLinkInput] = useState("");
 
   const exportToPDF = (id: string) => {
     console.log("Export PDF for analysis:", id);
@@ -84,6 +86,21 @@ const Results: React.FC = () => {
     setList((prev) => prev.filter((e) => e.id !== id));
     setConfirmingDeleteId(null);
   };
+
+  const saveDriveLink = async () => {
+    if (!selected || !driveLinkInput.trim()) return;
+    const url = driveLinkInput.trim();
+    await supabase.from("property_analysis").update({ drive_link: url }).eq("id", selected.id);
+    setSelected((prev) => prev ? { ...prev, content: { ...prev.content, drive_link: url } } : prev);
+    setList((prev) => prev.map((e) => e.id === selected.id ? { ...e, content: { ...e.content, drive_link: url } } : e));
+    setDriveLinkEditing(false);
+    setDriveLinkInput("");
+  };
+
+  useEffect(() => {
+    setDriveLinkEditing(false);
+    setDriveLinkInput("");
+  }, [selected?.id]);
 
   useEffect(() => {
     const loadSubscriptionInfo = async () => {
@@ -616,10 +633,67 @@ const Results: React.FC = () => {
                 </div>
 
                 <div className="mt-4 flex flex-col gap-3">
-                  <div>
-                    <h3 className="font-semibold">Drive Link</h3>
-                    <p className="text-sm text-muted-foreground">{selected.content.drive_link ? <a href={selected.content.drive_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{selected.content.drive_link}</a> : '-'}</p>
-                  </div>
+                  {selected.content.drive_link ? (
+                    <div>
+                      <h3 className="font-semibold mb-1">Drive Link</h3>
+                      <a
+                        href={selected.content.drive_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27 53H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066DA"/>
+                          <path d="M43.65 25L30 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 47.5C.4 48.9 0 50.45 0 52h27z" fill="#00AC47"/>
+                          <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H60.3l5.95 11.5z" fill="#EA4335"/>
+                          <path d="M43.65 25L57.3 1.2C55.95.4 54.4 0 52.85 0H34.45c-1.55 0-3.1.45-4.45 1.2z" fill="#00832D"/>
+                          <path d="M60.3 53H27L13.75 76.8c1.35.8 2.9 1.2 4.45 1.2h49.1c1.55 0 3.1-.45 4.45-1.2z" fill="#2684FC"/>
+                          <path d="M73.4 27.5L58.85 3.15C57.5 1.75 55.9.8 54.15.8L43.65 25 60.3 53H87.3c0-1.55-.4-3.1-1.2-4.5z" fill="#FFBA00"/>
+                        </svg>
+                        <span className="truncate max-w-55">{selected.content.drive_link}</span>
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    </div>
+                  ) : (
+                    <div>
+                      {driveLinkEditing ? (
+                        <>
+                          <h3 className="font-semibold mb-1.5">Drive Link</h3>
+                          <div className="flex gap-2">
+                            <input
+                              type="url"
+                              value={driveLinkInput}
+                              onChange={(e) => setDriveLinkInput(e.target.value)}
+                              onKeyDown={(e) => e.key === "Enter" && saveDriveLink()}
+                              placeholder="Paste Google Drive URL…"
+                              autoFocus
+                              className="flex-1 text-sm border border-border rounded px-2.5 py-1.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                            <button
+                              onClick={saveDriveLink}
+                              className="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => { setDriveLinkEditing(false); setDriveLinkInput(""); }}
+                              className="text-sm px-2 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setDriveLinkEditing(true)}
+                          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <Link2 className="h-3.5 w-3.5" />
+                          <span>Add Drive link</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   <div>
                     <h3 className="font-semibold">Notes</h3>
