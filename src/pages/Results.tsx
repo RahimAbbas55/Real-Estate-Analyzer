@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, X, Lock } from "lucide-react";
+import { ChevronRight, X, Lock, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { getUserSubscription, getUsageInfo } from "@/integrations/supabase/subscription";
@@ -23,6 +23,9 @@ const Results: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "cap_rate" | "cash_flow">("newest");
+  const [filterPill, setFilterPill] = useState<"all" | "strong" | "marginal">("all");
 
   useEffect(() => {
     const loadSubscriptionInfo = async () => {
@@ -116,6 +119,42 @@ const Results: React.FC = () => {
     return `${n.toFixed(1)}%`;
   };
 
+  const displayedList = useMemo(() => {
+    let result = [...list];
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((e) =>
+        (e.content.property_address ?? "").toLowerCase().includes(q)
+      );
+    }
+
+    if (filterPill === "strong") {
+      result = result.filter((e) => Number(e.content.cap_rate ?? 0) >= 10);
+    } else if (filterPill === "marginal") {
+      result = result.filter((e) => {
+        const cap = Number(e.content.cap_rate ?? 0);
+        return cap >= 7 && cap < 10;
+      });
+    }
+
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "oldest":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "cap_rate":
+          return Number(b.content.cap_rate ?? 0) - Number(a.content.cap_rate ?? 0);
+        case "cash_flow":
+          return Number(b.content.monthly_cash_flow ?? 0) - Number(a.content.monthly_cash_flow ?? 0);
+        case "newest":
+        default:
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+
+    return result;
+  }, [list, searchQuery, sortBy, filterPill]);
+
   if (loading) {
     return (
       <Layout isAnalysisDisabled={isLimitReached}>
@@ -187,13 +226,60 @@ const Results: React.FC = () => {
           </div>
         </div>
 
+        {/* Search, Sort, and Filter Toolbar */}
+        {list.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search by address..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 pr-3 py-1.5 text-sm border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring w-56"
+              />
+            </div>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="text-sm border border-border rounded-md bg-background px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="cap_rate">Highest cap rate</option>
+              <option value="cash_flow">Highest cash flow</option>
+            </select>
+
+            <div className="flex items-center gap-1.5">
+              {(["all", "strong", "marginal"] as const).map((pill) => (
+                <button
+                  key={pill}
+                  onClick={() => setFilterPill(pill)}
+                  className={`text-sm px-3 py-1 rounded-full border transition-colors ${
+                    filterPill === pill
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                  }`}
+                >
+                  {pill === "all" ? "All" : pill === "strong" ? "Strong deals" : "Marginal"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {list.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground">No analyses yet. Run an analysis to see results here.</p>
           </div>
+        ) : displayedList.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-muted-foreground">No analyses match your search or filter.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {list.map((entry) => {
+            {displayedList.map((entry) => {
               const monthly = extract(entry, ["monthly_cash_flow"]) ?? 0;
               const cap = extract(entry, ["cap_rate"]) ?? 0;
               const coc = extract(entry, ["cash_on_cash_return"]) ?? 0;
