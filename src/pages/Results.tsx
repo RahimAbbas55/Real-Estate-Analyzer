@@ -383,6 +383,27 @@ const Results: React.FC = () => {
                   </button>
                 </div>
 
+                {selected.content.final_verdict && (() => {
+                  const verdict = selected.content.final_verdict as string;
+                  const isStrong = /strong deal/i.test(verdict);
+                  const isMarginal = /marginal deal/i.test(verdict);
+                  const isAvoid = /avoid/i.test(verdict);
+                  const icon = isStrong ? '✅' : isMarginal ? '⚠️' : '🚫';
+                  const label = isStrong ? 'Strong Deal' : isMarginal ? 'Marginal Deal' : 'Avoid';
+                  const borderCls = isStrong ? 'border-green-500' : isMarginal ? 'border-amber-500' : 'border-red-500';
+                  const bgCls = isStrong ? 'bg-green-50 dark:bg-green-950/20' : isMarginal ? 'bg-amber-50 dark:bg-amber-950/20' : 'bg-red-50 dark:bg-red-950/20';
+                  const labelCls = isStrong ? 'text-green-700 dark:text-green-400' : isMarginal ? 'text-amber-700 dark:text-amber-400' : 'text-red-700 dark:text-red-400';
+                  return (
+                    <div className={`mt-4 border-l-4 ${borderCls} ${bgCls} rounded-r-lg p-4`}>
+                      <div className={`flex items-center gap-2 font-semibold text-base ${labelCls}`}>
+                        <span>{icon}</span>
+                        <span>{label}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{verdict}</p>
+                    </div>
+                  );
+                })()}
+
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-muted/5 p-4 rounded">
                     <h3 className="font-semibold mb-2">Summary</h3>
@@ -405,12 +426,7 @@ const Results: React.FC = () => {
                         <p className="text-sm text-muted-foreground">{(selected.content.maximum_allowable_offer as any)?.assumptions}</p>
                       </div>
                     )}
-                    {selected.content.final_verdict && (
-                      <div className="mt-4">
-                        <h4 className="font-semibold">Final Verdict</h4>
-                        <p className="text-sm">{selected.content.final_verdict}</p>
-                      </div>
-                    )}
+
                   </div>
 
                   <div className="bg-muted/5 p-4 rounded">
