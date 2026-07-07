@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronRight, X, Lock, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +18,7 @@ type AnalysisEntry = {
 };
 
 const Results: React.FC = () => {
+  const navigate = useNavigate();
   const [list, setList] = useState<AnalysisEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AnalysisEntry | null>(null);
@@ -270,8 +272,18 @@ const Results: React.FC = () => {
         )}
 
         {list.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground">No analyses yet. Run an analysis to see results here.</p>
+          <div className="flex flex-col items-center justify-center text-center py-24 gap-4">
+            <span className="text-6xl">📊</span>
+            <h2 className="text-2xl font-semibold text-foreground">No analyses yet</h2>
+            <p className="text-muted-foreground max-w-sm">
+              Run your first property analysis to see cap rate, cash flow, and AI risk scores all in one place.
+            </p>
+            <button
+              onClick={() => navigate("/analysis")}
+              className="mt-2 px-5 py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              Analyze a Property Free →
+            </button>
           </div>
         ) : displayedList.length === 0 ? (
           <div className="text-center py-16">
