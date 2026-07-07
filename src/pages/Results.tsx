@@ -17,6 +17,50 @@ type AnalysisEntry = {
   content: PropertyAnalysis;
 };
 
+const RiskGauge: React.FC<{ score: number }> = ({ score }) => {
+  const clamped = Math.max(0, Math.min(100, score));
+  const pct = clamped;
+  const isLow = clamped <= 33;
+  const isHigh = clamped >= 67;
+  const level = isLow ? "Low Risk" : isHigh ? "High Risk" : "Medium Risk";
+  const levelCls = isLow
+    ? "text-green-600 dark:text-green-400"
+    : isHigh
+    ? "text-red-600 dark:text-red-400"
+    : "text-amber-600 dark:text-amber-400";
+  const markerColor = isLow ? "#16a34a" : isHigh ? "#dc2626" : "#d97706";
+  return (
+    <div className="w-full">
+      <div className="flex items-baseline gap-1 mb-2">
+        <span className="text-3xl font-bold leading-none" style={{ color: markerColor }}>{clamped}</span>
+        <span className="text-xs text-muted-foreground">/ 100</span>
+      </div>
+      <div className="relative">
+        <div className="h-3 rounded-full flex overflow-hidden">
+          <div className="bg-green-200 dark:bg-green-900/60" style={{ width: "33.3%" }} />
+          <div className="bg-amber-200 dark:bg-amber-900/60" style={{ width: "33.3%" }} />
+          <div className="bg-red-200 dark:bg-red-900/60" style={{ width: "33.4%" }} />
+        </div>
+        <div
+          className="absolute top-1/2 w-0.75 h-5 rounded-sm"
+          style={{
+            left: `${pct}%`,
+            transform: "translate(-50%, -50%)",
+            backgroundColor: markerColor,
+          }}
+        />
+      </div>
+      <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5 px-px">
+        <span>0</span>
+        <span>33</span>
+        <span>66</span>
+        <span>100</span>
+      </div>
+      <div className={`text-sm font-semibold mt-1.5 ${levelCls}`}>{level}</div>
+    </div>
+  );
+};
+
 const Results: React.FC = () => {
   const navigate = useNavigate();
   const [list, setList] = useState<AnalysisEntry[]>([]);
@@ -430,14 +474,20 @@ const Results: React.FC = () => {
                   </div>
 
                   <div className="bg-muted/5 p-4 rounded">
-                    <h3 className="font-semibold mb-2">AI Risk Assessment</h3>
-                    {selected.content.ai_risk_assessment ? (
-                      <>
-                        <p className="text-sm"><strong>Score:</strong> {String((selected.content.ai_risk_assessment as Record<string, unknown>)?.score ?? "-")}</p>
-                        <p className="text-sm"><strong>Level:</strong> {String((selected.content.ai_risk_assessment as Record<string, unknown>)?.level ?? "-")}</p>
-                        <p className="text-sm mt-2"><strong>Explanation:</strong> {String((selected.content.ai_risk_assessment as Record<string, unknown>)?.explanation ?? "-")}</p>
-                      </>
-                    ) : (
+                    <h3 className="font-semibold mb-3">AI Risk Assessment</h3>
+                    {selected.content.ai_risk_assessment ? (() => {
+                      const risk = selected.content.ai_risk_assessment as Record<string, unknown>;
+                      const rawScore = risk?.score;
+                      const scoreNum = typeof rawScore === "number" ? rawScore : Number(rawScore);
+                      return (
+                        <div>
+                          <RiskGauge score={isNaN(scoreNum) ? 0 : scoreNum} />
+                          {risk?.explanation && (
+                            <p className="text-sm text-muted-foreground mt-3">{String(risk.explanation)}</p>
+                          )}
+                        </div>
+                      );
+                    })() : (
                       <p className="text-sm text-muted-foreground">-</p>
                     )}
                   </div>
