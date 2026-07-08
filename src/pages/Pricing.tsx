@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import Layout from "@/components/Layout";
 import BottomNav from "@/components/BottomNav";
 import { Check, Zap, Building2, Crown, ExternalLink, Loader2 } from "lucide-react";
@@ -8,10 +9,16 @@ import { upgradeToPro, upgradeToProTier, openCustomerPortal } from "@/lib/stripe
 import { getUserSubscription } from "@/integrations/supabase/subscription";
 import { toast } from "sonner";
 
+const PRICING = {
+  pro:        { monthly: 15, annualMonthly: 12, annualTotal: 144 },
+  enterprise: { monthly: 39, annualMonthly: 31, annualTotal: 374 },
+};
+
 const Subscription: React.FC = () => {
   const [currentPlan, setCurrentPlan] = useState<string>("free");
   const [loading, setLoading] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
+  const [isAnnual, setIsAnnual] = useState(false);
 
   useEffect(() => {
     const loadCurrentPlan = async () => {
@@ -61,7 +68,9 @@ const Subscription: React.FC = () => {
     {
       id: "free",
       name: "Free",
-      price: "$0",
+      monthlyPrice: 0,
+      annualMonthlyPrice: 0,
+      annualTotal: 0,
       period: "/month",
       description: "Perfect for trying out the platform",
       icon: Zap,
@@ -76,7 +85,9 @@ const Subscription: React.FC = () => {
     {
       id: "pro",
       name: "Pro",
-      price: "$15",
+      monthlyPrice: PRICING.pro.monthly,
+      annualMonthlyPrice: PRICING.pro.annualMonthly,
+      annualTotal: PRICING.pro.annualTotal,
       period: "/month",
       description: "For growing real estate investors",
       icon: Crown,
@@ -95,7 +106,9 @@ const Subscription: React.FC = () => {
     {
       id: "enterprise",
       name: "Enterprise",
-      price: "$39",
+      monthlyPrice: PRICING.enterprise.monthly,
+      annualMonthlyPrice: PRICING.enterprise.annualMonthly,
+      annualTotal: PRICING.enterprise.annualTotal,
       period: "/month",
       description: "For serious real estate investors",
       icon: Building2,
@@ -227,6 +240,25 @@ const Subscription: React.FC = () => {
           </p>
         </div>
 
+        {/* Billing toggle */}
+        <div className="flex items-center justify-center gap-4 mb-10">
+          <span className={`text-sm font-medium ${!isAnnual ? "text-foreground" : "text-muted-foreground"}`}>
+            Monthly
+          </span>
+          <Switch
+            checked={isAnnual}
+            onCheckedChange={setIsAnnual}
+            aria-label="Toggle annual billing"
+            className="data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-gray-600 border-2 data-[state=unchecked]:border-gray-300 dark:data-[state=unchecked]:border-gray-600"
+          />
+          <span className={`text-sm font-medium flex items-center gap-2 ${isAnnual ? "text-foreground" : "text-muted-foreground"}`}>
+            Annual
+            <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+              Save 20%
+            </span>
+          </span>
+        </div>
+
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {plans.map((plan) => {
             const Icon = plan.icon;
@@ -268,9 +300,18 @@ const Subscription: React.FC = () => {
                   <CardTitle className="text-2xl">{plan.name}</CardTitle>
                   <CardDescription>{plan.description}</CardDescription>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold">{plan.price}</span>
+                    <span className="text-4xl font-bold">
+                      {plan.monthlyPrice === 0
+                        ? "$0"
+                        : `$${isAnnual ? plan.annualMonthlyPrice : plan.monthlyPrice}`}
+                    </span>
                     <span className="text-muted-foreground">{plan.period}</span>
                   </div>
+                  {isAnnual && plan.annualTotal > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Billed as ${plan.annualTotal}/yr
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <ul className="space-y-3">
