@@ -1,4 +1,4 @@
-import { Home, Calculator, FileText, CreditCard } from "lucide-react";
+import { Home, Calculator, FileText, CreditCard, HelpCircle, Mail } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getUsageInfo, getUserSubscription } from "@/integrations/supabase/subscription";
@@ -12,6 +12,8 @@ const BottomNav = ({ isAnalysisDisabled = false }: { isAnalysisDisabled?: boolea
     { path: "/analysis", icon: Calculator, label: "Analysis", disabled: isAnalysisDisabled },
     { path: "/results", icon: FileText, label: "Results" },
     { path: "/subscription", icon: CreditCard, label: "Plan" },
+    { path: "/help", icon: HelpCircle, label: "Help" },
+    { path: "/contact", icon: Mail, label: "Contact" },
   ];
 
   return (

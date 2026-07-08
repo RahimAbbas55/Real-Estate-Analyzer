@@ -45,6 +45,8 @@ const Header = ({ isAnalysisDisabled = false }: { isAnalysisDisabled?: boolean }
           <Link to="/subscription" className={`px-3 py-2 rounded-md ${location.pathname === '/subscription' ? 'bg-primary/5 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>
             <span className="flex items-center gap-1"><CreditCard className="w-4 h-4" />Subscription</span>
           </Link>
+          <Link to="/help" className={`px-3 py-2 rounded-md ${location.pathname === '/help' ? 'bg-primary/5 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>Help</Link>
+          <Link to="/contact" className={`px-3 py-2 rounded-md ${location.pathname === '/contact' ? 'bg-primary/5 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>Contact</Link>
         </nav>
 
         <div className="flex items-center gap-3">
