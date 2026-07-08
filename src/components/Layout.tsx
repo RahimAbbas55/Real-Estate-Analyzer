@@ -61,13 +61,28 @@ const Header = ({ isAnalysisDisabled = false }: { isAnalysisDisabled?: boolean }
 
 const Footer = () => (
   <footer className="w-full border-t border-border bg-card mt-8">
-    <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-      <img 
-        src="/image_assets/logo/Color logo with background.png" 
-        alt="REPA Logo" 
-        className="h-6 w-auto rounded"
-      />
-      <span>© {new Date().getFullYear()} REPA — Built with ❤️</span>
+    <div className="max-w-7xl mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <img
+          src="/image_assets/logo/Color logo - no background.png"
+          alt="REPA Logo"
+          className="h-6 w-auto"
+        />
+        <span>© {new Date().getFullYear()} REPA — Built with ❤️</span>
+      </div>
+      <div className="flex items-center gap-4 flex-wrap justify-center">
+        <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+        <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+        <a href="mailto:support@repa.io" className="hover:text-foreground transition-colors">support@repa.io</a>
+        <a
+          href="https://linkedin.com/company/repa"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-foreground transition-colors"
+        >
+          LinkedIn
+        </a>
+      </div>
     </div>
   </footer>
 );
