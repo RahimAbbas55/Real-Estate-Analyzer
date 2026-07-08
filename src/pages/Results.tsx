@@ -74,6 +74,7 @@ const Results: React.FC = () => {
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "cap_rate" | "cash_flow">("newest");
   const [filterPill, setFilterPill] = useState<"all" | "strong" | "marginal">("all");
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [maoCopied, setMaoCopied] = useState(false);
   const [driveLinkEditing, setDriveLinkEditing] = useState(false);
   const [driveLinkInput, setDriveLinkInput] = useState("");
 
@@ -85,6 +86,14 @@ const Results: React.FC = () => {
     await supabase.from("property_analysis").delete().eq("id", id);
     setList((prev) => prev.filter((e) => e.id !== id));
     setConfirmingDeleteId(null);
+  };
+
+  const handleCopyMao = (value: unknown) => {
+    const formatted = `$${formatNumber(value)}`;
+    navigator.clipboard.writeText(formatted).then(() => {
+      setMaoCopied(true);
+      setTimeout(() => setMaoCopied(false), 1500);
+    });
   };
 
   const saveDriveLink = async () => {
@@ -510,7 +519,15 @@ const Results: React.FC = () => {
                     {selected.content.maximum_allowable_offer && (
                       <div className="mt-4">
                         <h4 className="font-semibold">Maximum Allowable Offer</h4>
-                        <p className="text-sm">${formatNumber((selected.content.maximum_allowable_offer as any)?.mao_value)}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm">${formatNumber((selected.content.maximum_allowable_offer as any)?.mao_value)}</p>
+                          <button
+                            onClick={() => handleCopyMao((selected.content.maximum_allowable_offer as any)?.mao_value)}
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-muted"
+                          >
+                            {maoCopied ? "Copied ✓" : "Copy"}
+                          </button>
+                        </div>
                         <p className="text-sm text-muted-foreground">{(selected.content.maximum_allowable_offer as any)?.assumptions}</p>
                       </div>
                     )}
