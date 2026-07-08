@@ -165,10 +165,12 @@ const Results: React.FC = () => {
     fetchAnalysisResults();
   }, []);
 
-  const getDealQualityBorderColor = (capRate: number): string => {
-    if (capRate >= 10) return "#16a34a";
-    if (capRate >= 7) return "#d97706";
-    return "#dc2626";
+  const getDealQualityBorderColor = (verdict: string | null): string => {
+    if (!verdict) return "#6b7280";
+    if (/strong deal/i.test(verdict)) return "#16a34a";
+    if (/marginal deal/i.test(verdict)) return "#d97706";
+    if (/avoid/i.test(verdict)) return "#dc2626";
+    return "#6b7280";
   };
 
   const camelToSnake = (s: string) => s.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase());
@@ -376,7 +378,7 @@ const Results: React.FC = () => {
                 <Card
                   key={entry.id}
                   className="relative group hover:shadow-lg transition-shadow cursor-pointer"
-                  style={{ borderLeft: `4px solid ${getDealQualityBorderColor(Number(cap))}` }}
+                  style={{ borderLeft: `4px solid ${getDealQualityBorderColor(entry.content.final_verdict)}` }}
                   onClick={() => setSelected(entry)}
                 >
                   {confirmingDeleteId === entry.id ? (
