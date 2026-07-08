@@ -501,57 +501,58 @@ const Results: React.FC = () => {
                   );
                 })()}
 
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-muted/5 p-4 rounded">
-                    <h3 className="font-semibold mb-2">Summary</h3>
-                    {selected.content.property_address && <div className="mb-3 pb-3 border-b"><p className="font-medium text-foreground">{selected.content.property_address}</p></div>}
-                    <dl className="text-sm space-y-2">
-                      <div className="flex justify-between"><dt>Status</dt><dd>{String(selected.content.status ?? "saved")}</dd></div>
-                      <div className="flex justify-between"><dt>Mortgage Payment</dt><dd>${formatNumber(selected.content.mortgage_payment)}</dd></div>
-                      <div className="flex justify-between"><dt>Net Operating Income</dt><dd>${formatNumber(selected.content.net_operating_income)}</dd></div>
-                      <div className="flex justify-between"><dt>Monthly Cash Flow</dt><dd>${formatNumber(selected.content.monthly_cash_flow)}</dd></div>
-                      <div className="flex justify-between"><dt>Annual Cash Flow</dt><dd>${formatNumber(selected.content.annual_cash_flow)}</dd></div>
-                      <div className="flex justify-between"><dt>Cap Rate</dt><dd>{formatPercent(selected.content.cap_rate)}</dd></div>
-                      <div className="flex justify-between"><dt>Cash on Cash</dt><dd>{formatPercent(selected.content.cash_on_cash_return)}</dd></div>
-                      <div className="flex justify-between"><dt>DSCR</dt><dd>{formatNumber(selected.content.dscr)}</dd></div>
-                      <div className="flex justify-between"><dt>Required Investment</dt><dd>${formatNumber(selected.content.required_investment)}</dd></div>
-                    </dl>
-                    {selected.content.maximum_allowable_offer && (
-                      <div className="mt-4">
-                        <h4 className="font-semibold">Maximum Allowable Offer</h4>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm">${formatNumber((selected.content.maximum_allowable_offer as any)?.mao_value)}</p>
-                          <button
-                            onClick={() => handleCopyMao((selected.content.maximum_allowable_offer as any)?.mao_value)}
-                            className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-muted"
-                          >
-                            {maoCopied ? "Copied ✓" : "Copy"}
-                          </button>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{(selected.content.maximum_allowable_offer as any)?.assumptions}</p>
+                {/* 2. Maximum Allowable Offer */}
+                {selected.content.maximum_allowable_offer && (
+                  <div className="mt-4 bg-muted/5 p-4 rounded">
+                    <h4 className="font-semibold">Maximum Allowable Offer</h4>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm">${formatNumber((selected.content.maximum_allowable_offer as any)?.mao_value)}</p>
+                      <button
+                        onClick={() => handleCopyMao((selected.content.maximum_allowable_offer as any)?.mao_value)}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-muted"
+                      >
+                        {maoCopied ? "Copied ✓" : "Copy"}
+                      </button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{(selected.content.maximum_allowable_offer as any)?.assumptions}</p>
+                  </div>
+                )}
+
+                {/* 3. Key metrics summary table */}
+                <div className="mt-4 bg-muted/5 p-4 rounded">
+                  <h3 className="font-semibold mb-2">Summary</h3>
+                  {selected.content.property_address && <div className="mb-3 pb-3 border-b"><p className="font-medium text-foreground">{selected.content.property_address}</p></div>}
+                  <dl className="text-sm space-y-2">
+                    <div className="flex justify-between"><dt>Status</dt><dd>{String(selected.content.status ?? "saved")}</dd></div>
+                    <div className="flex justify-between"><dt>Mortgage Payment</dt><dd>${formatNumber(selected.content.mortgage_payment)}</dd></div>
+                    <div className="flex justify-between"><dt>Net Operating Income</dt><dd>${formatNumber(selected.content.net_operating_income)}</dd></div>
+                    <div className="flex justify-between"><dt>Monthly Cash Flow</dt><dd>${formatNumber(selected.content.monthly_cash_flow)}</dd></div>
+                    <div className="flex justify-between"><dt>Annual Cash Flow</dt><dd>${formatNumber(selected.content.annual_cash_flow)}</dd></div>
+                    <div className="flex justify-between"><dt>Cap Rate</dt><dd>{formatPercent(selected.content.cap_rate)}</dd></div>
+                    <div className="flex justify-between"><dt>Cash on Cash</dt><dd>{formatPercent(selected.content.cash_on_cash_return)}</dd></div>
+                    <div className="flex justify-between"><dt>DSCR</dt><dd>{formatNumber(selected.content.dscr)}</dd></div>
+                    <div className="flex justify-between"><dt>Required Investment</dt><dd>${formatNumber(selected.content.required_investment)}</dd></div>
+                  </dl>
+                </div>
+
+                {/* 4. AI Risk Assessment */}
+                <div className="mt-4 bg-muted/5 p-4 rounded">
+                  <h3 className="font-semibold mb-3">AI Risk Assessment</h3>
+                  {selected.content.ai_risk_assessment ? (() => {
+                    const risk = selected.content.ai_risk_assessment as Record<string, unknown>;
+                    const rawScore = risk?.score;
+                    const scoreNum = typeof rawScore === "number" ? rawScore : Number(rawScore);
+                    return (
+                      <div>
+                        <RiskGauge score={isNaN(scoreNum) ? 0 : scoreNum} />
+                        {risk?.explanation && (
+                          <p className="text-sm text-muted-foreground mt-3">{String(risk.explanation)}</p>
+                        )}
                       </div>
-                    )}
-
-                  </div>
-
-                  <div className="bg-muted/5 p-4 rounded">
-                    <h3 className="font-semibold mb-3">AI Risk Assessment</h3>
-                    {selected.content.ai_risk_assessment ? (() => {
-                      const risk = selected.content.ai_risk_assessment as Record<string, unknown>;
-                      const rawScore = risk?.score;
-                      const scoreNum = typeof rawScore === "number" ? rawScore : Number(rawScore);
-                      return (
-                        <div>
-                          <RiskGauge score={isNaN(scoreNum) ? 0 : scoreNum} />
-                          {risk?.explanation && (
-                            <p className="text-sm text-muted-foreground mt-3">{String(risk.explanation)}</p>
-                          )}
-                        </div>
-                      );
-                    })() : (
-                      <p className="text-sm text-muted-foreground">-</p>
-                    )}
-                  </div>
+                    );
+                  })() : (
+                    <p className="text-sm text-muted-foreground">-</p>
+                  )}
                 </div>
 
                 <div className="mt-4 bg-muted/5 p-4 rounded">
