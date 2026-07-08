@@ -340,6 +340,15 @@ const Subscription: React.FC = () => {
                       plan.buttonText
                     )}
                   </Button>
+                  {(plan.id === "pro" || plan.id === "enterprise") && !plan.disabled && (
+                    <p className="flex items-center justify-center gap-1.5 flex-wrap text-[11px] text-muted-foreground pt-1">
+                      <span>🔒 Secure payment</span>
+                      <span className="text-muted-foreground/40">·</span>
+                      <span>Cancel anytime</span>
+                      <span className="text-muted-foreground/40">·</span>
+                      <span>7-day money-back</span>
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             );
