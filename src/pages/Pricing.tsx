@@ -345,6 +345,61 @@ const Subscription: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Feature comparison table */}
+        <div className="mt-14 mb-8">
+          <h2 className="text-xl font-semibold text-foreground mb-1 text-center">Compare plans</h2>
+          <p className="text-sm text-muted-foreground text-center mb-6">Everything you need, at the right tier.</p>
+          <div className="overflow-x-auto rounded-xl border border-border shadow-sm bg-white dark:bg-card">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left px-6 py-4 font-medium text-muted-foreground bg-gray-50 dark:bg-muted/60 w-2/5 border-b border-border">Feature</th>
+                  <th className="text-center px-6 py-4 font-semibold text-muted-foreground bg-gray-50 dark:bg-muted/60 border-b border-border">Free</th>
+                  <th className="text-center px-6 py-4 font-semibold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 border-b-2 border-purple-400 dark:border-purple-600">
+                    <span className="flex flex-col items-center gap-0.5">
+                      Pro
+                      <span className="text-[10px] font-semibold text-purple-500 dark:text-purple-400 tracking-widest uppercase">Most Popular</span>
+                    </span>
+                  </th>
+                  <th className="text-center px-6 py-4 font-semibold text-primary bg-gray-50 dark:bg-muted/60 border-b border-border">Enterprise</th>
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  { feature: "Monthly analyses",     free: "3",      pro: "20",      enterprise: "Unlimited" },
+                  { feature: "AI risk assessment",   free: false,    pro: true,      enterprise: true        },
+                  { feature: "PDF export",           free: false,    pro: true,      enterprise: true        },
+                  { feature: "Repair estimates",     free: false,    pro: true,      enterprise: true        },
+                  { feature: "Cash flow & cap rate", free: "Basic",  pro: "Full",    enterprise: "Full"      },
+                  { feature: "Customer support",     free: "Email",  pro: "Email",   enterprise: "Priority"  },
+                  { feature: "Team access",          free: false,    pro: false,     enterprise: true        },
+                ] as const).map((row) => {
+                  const renderCell = (val: boolean | string, highlight: boolean) => {
+                    if (typeof val === "boolean") {
+                      return val
+                        ? <span className="text-green-500 text-lg leading-none">✓</span>
+                        : <span className="text-gray-300 dark:text-gray-600 text-base leading-none">—</span>;
+                    }
+                    return (
+                      <span className={highlight ? "font-semibold text-foreground" : "text-muted-foreground"}>
+                        {val}
+                      </span>
+                    );
+                  };
+                  return (
+                    <tr key={row.feature} className="border-b border-gray-100 dark:border-border last:border-0 hover:bg-gray-50/80 dark:hover:bg-muted/20 transition-colors">
+                      <td className="px-6 py-3.5 text-foreground font-medium">{row.feature}</td>
+                      <td className="px-6 py-3.5 text-center">{renderCell(row.free as boolean | string, false)}</td>
+                      <td className="px-6 py-3.5 text-center bg-purple-50 dark:bg-purple-900/30">{renderCell(row.pro as boolean | string, true)}</td>
+                      <td className="px-6 py-3.5 text-center">{renderCell(row.enterprise as boolean | string, true)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
       <BottomNav />
     </Layout>
