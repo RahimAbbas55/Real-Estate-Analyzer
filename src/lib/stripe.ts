@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// Stripe Price ID from environment
+// Stripe Price IDs from environment
 export const STRIPE_PRO_PRICE_ID = import.meta.env.VITE_STRIPE_PRO_PRICE_ID || "";
+export const STRIPE_PRO_TIER_PRICE_ID = import.meta.env.VITE_STRIPE_PRO_TIER_PRICE_ID || "";
 
 export interface CheckoutResponse {
   sessionId: string;
@@ -90,11 +91,21 @@ export async function openCustomerPortal(): Promise<void> {
 }
 
 /**
- * Upgrade to Pro plan ($39/month)
+ * Upgrade to Enterprise plan ($39/month)
  */
 export async function upgradeToPro(): Promise<void> {
   if (!STRIPE_PRO_PRICE_ID) {
     throw new Error("Stripe Price ID not configured");
   }
   await createCheckoutSession(STRIPE_PRO_PRICE_ID);
+}
+
+/**
+ * Upgrade to Pro tier plan ($15/month)
+ */
+export async function upgradeToProTier(): Promise<void> {
+  if (!STRIPE_PRO_TIER_PRICE_ID) {
+    throw new Error("Stripe Pro Tier Price ID not configured");
+  }
+  await createCheckoutSession(STRIPE_PRO_TIER_PRICE_ID);
 }

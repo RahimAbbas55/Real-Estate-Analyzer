@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Layout from "@/components/Layout";
 import BottomNav from "@/components/BottomNav";
 import { Check, Zap, Building2, Crown, ExternalLink, Loader2 } from "lucide-react";
-import { upgradeToPro, openCustomerPortal } from "@/lib/stripe";
+import { upgradeToPro, upgradeToProTier, openCustomerPortal } from "@/lib/stripe";
 import { getUserSubscription } from "@/integrations/supabase/subscription";
 import { toast } from "sonner";
 
@@ -37,6 +37,16 @@ const Subscription: React.FC = () => {
     }
   };
 
+  const handleUpgradeProTier = async () => {
+    setLoading("pro");
+    try {
+      await upgradeToProTier();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to start checkout");
+      setLoading(null);
+    }
+  };
+
   const handleManageMembership = async () => {
     setLoading("manage");
     try {
@@ -62,6 +72,25 @@ const Subscription: React.FC = () => {
       ],
       buttonText: currentPlan === "free" ? "Current Plan" : "Downgrade",
       disabled: currentPlan === "free",
+    },
+    {
+      id: "pro",
+      name: "Pro",
+      price: "$15",
+      period: "/month",
+      description: "For growing real estate investors",
+      icon: Crown,
+      features: [
+        "20 property analyses per month",
+        "AI risk scoring",
+        "PDF export",
+        "Repair estimates",
+        "Full cash flow & cap rate metrics",
+        "Email support",
+      ],
+      buttonText: currentPlan === "pro" ? "Current Plan" : "Upgrade to Pro",
+      disabled: currentPlan === "pro",
+      mostPopular: true,
     },
     {
       id: "enterprise",
@@ -188,7 +217,7 @@ const Subscription: React.FC = () => {
   // Free user view - Show plans
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto px-4 py-12">
+      <div className="max-w-5xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-foreground mb-4">
             Choose Your Plan
@@ -198,7 +227,7 @@ const Subscription: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           {plans.map((plan) => {
             const Icon = plan.icon;
             const isCurrentPlan = currentPlan === plan.id;
@@ -206,8 +235,18 @@ const Subscription: React.FC = () => {
             return (
               <Card
                 key={plan.id}
-                className={`relative ${plan.popular ? "border-primary shadow-lg" : ""} ${isCurrentPlan ? "ring-2 ring-primary" : ""}`}
+                className={`relative ${
+                  plan.mostPopular ? "border-purple-500 shadow-lg" :
+                  plan.popular ? "border-primary shadow-lg" : ""
+                } ${isCurrentPlan ? "ring-2 ring-primary" : ""}`}
               >
+                {plan.mostPopular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-purple-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
@@ -244,10 +283,11 @@ const Subscription: React.FC = () => {
                   </ul>
                   <Button
                     className="w-full"
-                    variant={plan.popular ? "default" : "outline"}
+                    variant={plan.popular || plan.mostPopular ? "default" : "outline"}
                     disabled={plan.disabled || loading !== null}
                     onClick={() => {
                       if (plan.id === "enterprise") handleUpgrade();
+                      else if (plan.id === "pro") handleUpgradeProTier();
                     }}
                   >
                     {loading === plan.id ? (
