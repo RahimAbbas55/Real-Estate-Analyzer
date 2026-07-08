@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import Layout from "@/components/Layout";
 import BottomNav from "@/components/BottomNav";
-import { Check, Zap, Building2, Crown, ExternalLink, Loader2 } from "lucide-react";
+import { Check, Zap, Building2, Crown, ExternalLink, Loader2, ChevronDown } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { upgradeToPro, upgradeToProTier, openCustomerPortal } from "@/lib/stripe";
 import { getUserSubscription } from "@/integrations/supabase/subscription";
 import { toast } from "sonner";
@@ -407,6 +408,48 @@ const Subscription: React.FC = () => {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="mt-16 mb-10 max-w-2xl mx-auto">
+          <h2 className="text-xl font-semibold text-foreground mb-1 text-center">Frequently asked questions</h2>
+          <p className="text-sm text-muted-foreground text-center mb-8">Quick answers to common questions.</p>
+          <div className="rounded-xl border border-border bg-white dark:bg-card shadow-sm overflow-hidden">
+            <Accordion type="single" collapsible>
+              {[
+                {
+                  q: "Can I cancel my subscription?",
+                  a: "Yes, at any time. No contracts or lock-in periods. Cancel from the billing portal and you'll keep access until the end of your current billing period.",
+                },
+                {
+                  q: "What happens to my analyses if I downgrade?",
+                  a: "Your existing analyses are never deleted. If you downgrade to Free, you can still view all past results — you just won't be able to run new analyses beyond the Free plan limit.",
+                },
+                {
+                  q: "Is there a free trial for Enterprise?",
+                  a: "Not currently. The Free plan gives you 3 analyses per month to evaluate the platform. If you need more time to assess Enterprise features, reach out to support@repa.io.",
+                },
+                {
+                  q: "Can I use REPA with my team?",
+                  a: "Team access is available on the Enterprise plan. Each team member gets their own login, and analyses are shared across the account. Pro and Free plans are single-user only.",
+                },
+              ].map(({ q, a }, i, arr) => (
+                <AccordionItem
+                  key={q}
+                  value={q}
+                  className={`border-none px-6 ${i < arr.length - 1 ? "border-b border-gray-100 dark:border-border" : ""}`}
+                >
+                  <AccordionTrigger className="flex items-center justify-between w-full py-4 text-sm font-medium text-foreground hover:no-underline hover:text-primary transition-colors [&>svg]:hidden [&[data-state=open]_svg]:rotate-180">
+                    {q}
+                    <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200" />
+                  </AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground pb-5 leading-relaxed">
+                    {a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         </div>
       </div>
