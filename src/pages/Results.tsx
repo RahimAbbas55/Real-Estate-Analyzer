@@ -27,8 +27,8 @@ const RiskGauge: React.FC<{ score: number }> = ({ score }) => {
     ? "text-green-600 dark:text-green-400"
     : isHigh
     ? "text-red-600 dark:text-red-400"
-    : "text-amber-600 dark:text-amber-400";
-  const markerColor = isLow ? "#16a34a" : isHigh ? "#dc2626" : "#d97706";
+    : "text-orange-500 dark:text-orange-400";
+  const markerColor = isLow ? "#16a34a" : isHigh ? "#dc2626" : "#f97316";
   return (
     <div className="w-full">
       <div className="flex items-baseline gap-1 mb-2">
@@ -38,7 +38,7 @@ const RiskGauge: React.FC<{ score: number }> = ({ score }) => {
       <div className="relative">
         <div className="h-3 rounded-full flex overflow-hidden">
           <div className="bg-green-200 dark:bg-green-900/60" style={{ width: "33.3%" }} />
-          <div className="bg-amber-200 dark:bg-amber-900/60" style={{ width: "33.3%" }} />
+          <div className="bg-orange-200 dark:bg-orange-900/60" style={{ width: "33.3%" }} />
           <div className="bg-red-200 dark:bg-red-900/60" style={{ width: "33.4%" }} />
         </div>
         <div
@@ -74,7 +74,6 @@ const Results: React.FC = () => {
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "cap_rate" | "cash_flow">("newest");
   const [filterPill, setFilterPill] = useState<"all" | "strong" | "marginal">("all");
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
-  const [maoCopied, setMaoCopied] = useState(false);
   const [driveLinkEditing, setDriveLinkEditing] = useState(false);
   const [driveLinkInput, setDriveLinkInput] = useState("");
 
@@ -86,14 +85,6 @@ const Results: React.FC = () => {
     await supabase.from("property_analysis").delete().eq("id", id);
     setList((prev) => prev.filter((e) => e.id !== id));
     setConfirmingDeleteId(null);
-  };
-
-  const handleCopyMao = (value: unknown) => {
-    const formatted = `$${formatNumber(value)}`;
-    navigator.clipboard.writeText(formatted).then(() => {
-      setMaoCopied(true);
-      setTimeout(() => setMaoCopied(false), 1500);
-    });
   };
 
   const saveDriveLink = async () => {
@@ -174,12 +165,19 @@ const Results: React.FC = () => {
     fetchAnalysisResults();
   }, []);
 
-  const getDealQualityBorderColor = (verdict: string | null): string => {
-    if (!verdict) return "#6b7280";
-    if (/strong deal/i.test(verdict)) return "#16a34a";
-    if (/marginal deal/i.test(verdict)) return "#d97706";
-    if (/avoid/i.test(verdict)) return "#dc2626";
-    return "#6b7280";
+  const getVerdictBorderColor = (entry: AnalysisEntry): string => {
+    const verdict = entry.content.final_verdict as string | null | undefined;
+    if (verdict) {
+      if (/strong deal/i.test(verdict)) return "#16a34a";
+      if (/marginal deal/i.test(verdict)) return "#f97316";
+      // any other non-null verdict defaults to avoid (matches modal behaviour)
+      return "#dc2626";
+    }
+    // fallback to cap rate if no verdict stored
+    const cap = Number(entry.content.cap_rate ?? 0);
+    if (cap >= 10) return "#16a34a";
+    if (cap >= 7) return "#f97316";
+    return "#dc2626";
   };
 
   const camelToSnake = (s: string) => s.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase());
@@ -387,7 +385,7 @@ const Results: React.FC = () => {
                 <Card
                   key={entry.id}
                   className="relative group hover:shadow-lg transition-shadow cursor-pointer"
-                  style={{ borderLeft: `4px solid ${getDealQualityBorderColor(entry.content.final_verdict)}` }}
+                  style={{ borderLeft: `4px solid ${getVerdictBorderColor(entry)}` }}
                   onClick={() => setSelected(entry)}
                 >
                   {confirmingDeleteId === entry.id ? (
@@ -487,9 +485,9 @@ const Results: React.FC = () => {
                   const isAvoid = /avoid/i.test(verdict);
                   const icon = isStrong ? '✅' : isMarginal ? '⚠️' : '🚫';
                   const label = isStrong ? 'Strong Deal' : isMarginal ? 'Marginal Deal' : 'Avoid';
-                  const borderCls = isStrong ? 'border-green-500' : isMarginal ? 'border-amber-500' : 'border-red-500';
-                  const bgCls = isStrong ? 'bg-green-50 dark:bg-green-950/20' : isMarginal ? 'bg-amber-50 dark:bg-amber-950/20' : 'bg-red-50 dark:bg-red-950/20';
-                  const labelCls = isStrong ? 'text-green-700 dark:text-green-400' : isMarginal ? 'text-amber-700 dark:text-amber-400' : 'text-red-700 dark:text-red-400';
+                  const borderCls = isStrong ? 'border-green-500' : isMarginal ? 'border-orange-500' : 'border-red-500';
+                  const bgCls = isStrong ? 'bg-green-50 dark:bg-green-950/20' : isMarginal ? 'bg-orange-50 dark:bg-orange-950/20' : 'bg-red-50 dark:bg-red-950/20';
+                  const labelCls = isStrong ? 'text-green-700 dark:text-green-400' : isMarginal ? 'text-orange-600 dark:text-orange-400' : 'text-red-700 dark:text-red-400';
                   return (
                     <div className={`mt-4 border-l-4 ${borderCls} ${bgCls} rounded-r-lg p-4`}>
                       <div className={`flex items-center gap-2 font-semibold text-base ${labelCls}`}>
@@ -501,58 +499,49 @@ const Results: React.FC = () => {
                   );
                 })()}
 
-                {/* 2. Maximum Allowable Offer */}
-                {selected.content.maximum_allowable_offer && (
-                  <div className="mt-4 bg-muted/5 p-4 rounded">
-                    <h4 className="font-semibold">Maximum Allowable Offer</h4>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm">${formatNumber((selected.content.maximum_allowable_offer as any)?.mao_value)}</p>
-                      <button
-                        onClick={() => handleCopyMao((selected.content.maximum_allowable_offer as any)?.mao_value)}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-muted"
-                      >
-                        {maoCopied ? "Copied ✓" : "Copy"}
-                      </button>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{(selected.content.maximum_allowable_offer as any)?.assumptions}</p>
-                  </div>
-                )}
-
-                {/* 3. Key metrics summary table */}
-                <div className="mt-4 bg-muted/5 p-4 rounded">
-                  <h3 className="font-semibold mb-2">Summary</h3>
-                  {selected.content.property_address && <div className="mb-3 pb-3 border-b"><p className="font-medium text-foreground">{selected.content.property_address}</p></div>}
-                  <dl className="text-sm space-y-2">
-                    <div className="flex justify-between"><dt>Status</dt><dd>{String(selected.content.status ?? "saved")}</dd></div>
-                    <div className="flex justify-between"><dt>Mortgage Payment</dt><dd>${formatNumber(selected.content.mortgage_payment)}</dd></div>
-                    <div className="flex justify-between"><dt>Net Operating Income</dt><dd>${formatNumber(selected.content.net_operating_income)}</dd></div>
-                    <div className="flex justify-between"><dt>Monthly Cash Flow</dt><dd>${formatNumber(selected.content.monthly_cash_flow)}</dd></div>
-                    <div className="flex justify-between"><dt>Annual Cash Flow</dt><dd>${formatNumber(selected.content.annual_cash_flow)}</dd></div>
-                    <div className="flex justify-between"><dt>Cap Rate</dt><dd>{formatPercent(selected.content.cap_rate)}</dd></div>
-                    <div className="flex justify-between"><dt>Cash on Cash</dt><dd>{formatPercent(selected.content.cash_on_cash_return)}</dd></div>
-                    <div className="flex justify-between"><dt>DSCR</dt><dd>{formatNumber(selected.content.dscr)}</dd></div>
-                    <div className="flex justify-between"><dt>Required Investment</dt><dd>${formatNumber(selected.content.required_investment)}</dd></div>
-                  </dl>
-                </div>
-
-                {/* 4. AI Risk Assessment */}
-                <div className="mt-4 bg-muted/5 p-4 rounded">
-                  <h3 className="font-semibold mb-3">AI Risk Assessment</h3>
-                  {selected.content.ai_risk_assessment ? (() => {
-                    const risk = selected.content.ai_risk_assessment as Record<string, unknown>;
-                    const rawScore = risk?.score;
-                    const scoreNum = typeof rawScore === "number" ? rawScore : Number(rawScore);
-                    return (
-                      <div>
-                        <RiskGauge score={isNaN(scoreNum) ? 0 : scoreNum} />
-                        {risk?.explanation && (
-                          <p className="text-sm text-muted-foreground mt-3">{String(risk.explanation)}</p>
-                        )}
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-muted/5 p-4 rounded">
+                    <h3 className="font-semibold mb-2">Summary</h3>
+                    {selected.content.property_address && <div className="mb-3 pb-3 border-b"><p className="font-medium text-foreground">{selected.content.property_address}</p></div>}
+                    <dl className="text-sm space-y-2">
+                      <div className="flex justify-between"><dt>Status</dt><dd>{String(selected.content.status ?? "saved")}</dd></div>
+                      <div className="flex justify-between"><dt>Mortgage Payment</dt><dd>${formatNumber(selected.content.mortgage_payment)}</dd></div>
+                      <div className="flex justify-between"><dt>Net Operating Income</dt><dd>${formatNumber(selected.content.net_operating_income)}</dd></div>
+                      <div className="flex justify-between"><dt>Monthly Cash Flow</dt><dd>${formatNumber(selected.content.monthly_cash_flow)}</dd></div>
+                      <div className="flex justify-between"><dt>Annual Cash Flow</dt><dd>${formatNumber(selected.content.annual_cash_flow)}</dd></div>
+                      <div className="flex justify-between"><dt>Cap Rate</dt><dd>{formatPercent(selected.content.cap_rate)}</dd></div>
+                      <div className="flex justify-between"><dt>Cash on Cash</dt><dd>{formatPercent(selected.content.cash_on_cash_return)}</dd></div>
+                      <div className="flex justify-between"><dt>DSCR</dt><dd>{formatNumber(selected.content.dscr)}</dd></div>
+                      <div className="flex justify-between"><dt>Required Investment</dt><dd>${formatNumber(selected.content.required_investment)}</dd></div>
+                    </dl>
+                    {selected.content.maximum_allowable_offer && (
+                      <div className="mt-4">
+                        <h4 className="font-semibold">Maximum Allowable Offer</h4>
+                        <p className="text-sm">${formatNumber((selected.content.maximum_allowable_offer as any)?.mao_value)}</p>
+                        <p className="text-sm text-muted-foreground">{(selected.content.maximum_allowable_offer as any)?.assumptions}</p>
                       </div>
-                    );
-                  })() : (
-                    <p className="text-sm text-muted-foreground">-</p>
-                  )}
+                    )}
+
+                  </div>
+
+                  <div className="bg-muted/5 p-4 rounded">
+                    <h3 className="font-semibold mb-3">AI Risk Assessment</h3>
+                    {selected.content.ai_risk_assessment ? (() => {
+                      const risk = selected.content.ai_risk_assessment as Record<string, unknown>;
+                      const rawScore = risk?.score;
+                      const scoreNum = typeof rawScore === "number" ? rawScore : Number(rawScore);
+                      return (
+                        <div>
+                          <RiskGauge score={isNaN(scoreNum) ? 0 : scoreNum} />
+                          {risk?.explanation && (
+                            <p className="text-sm text-muted-foreground mt-3">{String(risk.explanation)}</p>
+                          )}
+                        </div>
+                      );
+                    })() : (
+                      <p className="text-sm text-muted-foreground">-</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-4 bg-muted/5 p-4 rounded">
@@ -620,13 +609,13 @@ const Results: React.FC = () => {
                               <span className="absolute right-0 font-medium">${formatNumber(high)}</span>
                             </div>
                             {/* Bar track */}
-                            <div className="relative h-2 rounded-full bg-amber-200 dark:bg-amber-900/40" style={{ overflow: 'visible' }}>
+                            <div className="relative h-2 rounded-full bg-orange-200 dark:bg-orange-900/40" style={{ overflow: 'visible' }}>
                               {/* Low dot */}
-                              <div className="absolute top-1/2 w-3 h-3 rounded-full bg-amber-400" style={{ left: 0, transform: 'translate(-50%, -50%)' }} />
+                              <div className="absolute top-1/2 w-3 h-3 rounded-full bg-orange-400" style={{ left: 0, transform: 'translate(-50%, -50%)' }} />
                               {/* Mid dot — slightly larger */}
-                              <div className="absolute top-1/2 w-4 h-4 rounded-full bg-amber-500 shadow-sm" style={{ left: `${midPct}%`, transform: 'translate(-50%, -50%)' }} />
+                              <div className="absolute top-1/2 w-4 h-4 rounded-full bg-orange-500 shadow-sm" style={{ left: `${midPct}%`, transform: 'translate(-50%, -50%)' }} />
                               {/* High dot */}
-                              <div className="absolute top-1/2 w-3 h-3 rounded-full bg-amber-600 dark:bg-amber-400" style={{ left: '100%', transform: 'translate(-50%, -50%)' }} />
+                              <div className="absolute top-1/2 w-3 h-3 rounded-full bg-orange-600 dark:bg-orange-400" style={{ left: '100%', transform: 'translate(-50%, -50%)' }} />
                             </div>
                             {/* Point labels below */}
                             <div className="relative h-5 text-xs text-muted-foreground mt-1.5">
